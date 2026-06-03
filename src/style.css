@@ -153,6 +153,112 @@ h1 {
   pointer-events: auto;
 }
 
+.arrow-minigame-layer {
+  position: absolute;
+  left: 50%;
+  top: 54px;
+  width: min(540px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.arrow-minigame {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 3px solid #fff6cf;
+  background: rgba(10, 12, 18, 0.78);
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, 0.34),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.34);
+}
+
+.arrow-work-icon {
+  grid-row: span 4;
+  align-self: start;
+  color: #ffffff;
+  font-family: monospace;
+  font-size: 34px;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 3px 0 #11131a;
+}
+
+.arrow-sequence {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(34px, 1fr));
+  gap: 7px;
+  min-width: 0;
+}
+
+.arrow-token {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  background: rgba(24, 28, 38, 0.92);
+  color: #ffffff;
+  font-family: monospace;
+  font-size: 28px;
+  line-height: 1;
+  text-shadow: 0 3px 0 #11131a;
+}
+
+.arrow-token.done {
+  border-color: #58f47b;
+  color: #58f47b;
+  background: rgba(19, 80, 38, 0.72);
+}
+
+.arrow-token.current {
+  transform: translateY(-4px);
+  border-color: #fff6cf;
+  color: #fff6cf;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.36);
+}
+
+.arrow-meter,
+.arrow-timer {
+  width: 100%;
+  overflow: hidden;
+  border: 2px solid #fff6cf;
+  background: #11131a;
+}
+
+.arrow-meter {
+  height: 18px;
+}
+
+.arrow-timer {
+  height: 8px;
+  border-color: rgba(255, 246, 207, 0.7);
+}
+
+.arrow-meter-fill,
+.arrow-timer-fill {
+  height: 100%;
+  transition: width 110ms linear;
+}
+
+.arrow-meter-fill {
+  background: linear-gradient(90deg, #23dd55, #70ff88);
+}
+
+.arrow-timer-fill {
+  background: #f0c36b;
+}
+
+.arrow-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #fff6cf;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
 .dialogue-box {
   display: grid;
   grid-template-columns: 84px 1fr;
@@ -273,6 +379,27 @@ h1 {
 
   .interaction-prompt {
     bottom: 168px;
+  }
+
+  .arrow-minigame-layer {
+    top: 78px;
+  }
+
+  .arrow-minigame {
+    grid-template-columns: 1fr;
+  }
+
+  .arrow-work-icon {
+    display: none;
+  }
+
+  .arrow-token {
+    font-size: 22px;
+  }
+
+  .arrow-caption {
+    flex-direction: column;
+    gap: 4px;
   }
 
   .dialogue-layer {

@@ -4,16 +4,26 @@ import type { Interactable, RoomId } from "../../game/simulation/types";
 export type PlayerFacing = "right" | "left" | "up" | "down";
 
 const playerFrames: Record<PlayerFacing, string[]> = {
-  right: ["player-right-0", "player-right-1", "player-right-2"],
+  right: [
+    "player-right-0",
+    "player-right-1",
+    "player-right-2",
+    "player-right-3",
+    "player-right-4",
+    "player-right-5",
+  ],
   left: ["player-left-0", "player-left-1", "player-left-2"],
   down: ["player-down-0", "player-down-1"],
   up: ["player-up-0", "player-up-1"],
 };
 
 const playerFiles: Record<string, string> = {
-  "player-right-0": "/assets/characters/player/Sprite_0000.png",
-  "player-right-1": "/assets/characters/player/Sprite_0001.png",
-  "player-right-2": "/assets/characters/player/Sprite_0002.png",
+  "player-right-0": "/assets/characters/player/Sprite_00010.png",
+  "player-right-1": "/assets/characters/player/Sprite_00011.png",
+  "player-right-2": "/assets/characters/player/Sprite_00012.png",
+  "player-right-3": "/assets/characters/player/Sprite_00013.png",
+  "player-right-4": "/assets/characters/player/Sprite_00014.png",
+  "player-right-5": "/assets/characters/player/Sprite_00015.png",
   "player-left-0": "/assets/characters/player/Sprite_0003.png",
   "player-left-1": "/assets/characters/player/Sprite_0004.png",
   "player-left-2": "/assets/characters/player/Sprite_0005.png",
@@ -89,17 +99,20 @@ export function createInteractableView(
   interactable: Interactable,
 ): Phaser.GameObjects.Container {
   const pieces: Phaser.GameObjects.GameObject[] = [];
+  const labelY = interactable.kind === "object" ? -48 : -64;
 
   if (interactable.kind === "npc") {
     pieces.push(...createNpcPieces(scene, interactable.id));
   } else if (interactable.kind === "shadow") {
     pieces.push(...createShadowPieces(scene));
   } else {
-    pieces.push(...createObjectPieces(scene, interactable.id));
+    const objectPieces = createObjectPieces(scene, interactable.id);
+    scalePieces(objectPieces, 0.72);
+    pieces.push(...objectPieces);
   }
 
   const label = scene.add
-    .text(0, -64, interactable.label, {
+    .text(0, labelY, interactable.label, {
       fontFamily: "monospace",
       fontSize: "12px",
       color: "#fff6cf",
@@ -121,6 +134,26 @@ export function setInteractableHighlighted(
 ): void {
   container.setScale(highlighted ? 1.05 : 1);
   container.setAlpha(highlighted ? 1 : 0.88);
+}
+
+function scalePieces(pieces: Phaser.GameObjects.GameObject[], scale: number): void {
+  for (const piece of pieces) {
+    const target = piece as Phaser.GameObjects.GameObject & {
+      x?: number;
+      y?: number;
+      setScale?: (x: number, y?: number) => unknown;
+    };
+
+    if (typeof target.x === "number") {
+      target.x *= scale;
+    }
+
+    if (typeof target.y === "number") {
+      target.y *= scale;
+    }
+
+    target.setScale?.(scale);
+  }
 }
 
 function drawBedroom(graphics: Phaser.GameObjects.Graphics): void {

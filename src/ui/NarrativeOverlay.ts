@@ -1,5 +1,11 @@
 import { dialogues } from "../game/content/dialogues";
-import type { Choice, DialogueNode, GameState } from "../game/simulation/types";
+import type {
+  ArrowDirection,
+  ArrowMinigameState,
+  Choice,
+  DialogueNode,
+  GameState,
+} from "../game/simulation/types";
 
 type DialogueCallbacks = {
   onChoice: (choice: Choice) => void;
@@ -42,6 +48,7 @@ export class NarrativeOverlay {
         <div class="hud-chip regret" data-hud-regret></div>
       </section>
       <section class="interaction-prompt hidden" data-prompt></section>
+      <section class="arrow-minigame-layer hidden" data-arrow-minigame></section>
       <section class="dialogue-layer hidden" data-dialogue></section>
       <section class="ending-layer hidden" data-ending></section>
     `;
@@ -105,6 +112,72 @@ export class NarrativeOverlay {
     ending.innerHTML = "";
   }
 
+  showArrowMinigame(minigame: ArrowMinigameState): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-arrow-minigame]");
+    if (!layer) {
+      return;
+    }
+
+    layer.classList.remove("hidden");
+    layer.innerHTML = this.arrowMinigameMarkup(minigame);
+  }
+
+  updateArrowMinigame(minigame: ArrowMinigameState): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-arrow-minigame]");
+    if (!layer || layer.classList.contains("hidden")) {
+      this.showArrowMinigame(minigame);
+      return;
+    }
+
+    const progress = layer.querySelector<HTMLElement>("[data-arrow-progress]");
+    const timer = layer.querySelector<HTMLElement>("[data-arrow-time]");
+    const attempts = layer.querySelector<HTMLElement>("[data-arrow-attempts]");
+    const loop = layer.querySelector<HTMLElement>("[data-arrow-loop]");
+    const currentMarkup = layer.querySelector<HTMLElement>("[data-arrow-sequence]");
+    const nextSignature = this.arrowSignature(minigame);
+
+    if (currentMarkup?.dataset.arrowSequence !== nextSignature) {
+      this.showArrowMinigame(minigame);
+      return;
+    }
+
+    const progressRatio = minigame.currentIndex / minigame.sequence.length;
+    const timeRatio = minigame.timeRemainingMs / minigame.totalTimeMs;
+
+    if (progress) {
+      progress.style.width = `${Math.round(progressRatio * 100)}%`;
+    }
+
+    if (timer) {
+      timer.style.width = `${Math.round(timeRatio * 100)}%`;
+    }
+
+    if (attempts) {
+      attempts.textContent =
+        minigame.attempts > 1 ? `Ulang ${minigame.attempts}` : "Tetap fokus";
+    }
+
+    if (loop) {
+      loop.textContent = `Loop ${Math.min(minigame.loopsCompleted + 1, minigame.loopsRequired)}/${minigame.loopsRequired}`;
+    }
+
+    for (const item of layer.querySelectorAll<HTMLElement>("[data-arrow-index]")) {
+      const index = Number(item.dataset.arrowIndex ?? 0);
+      item.classList.toggle("done", index < minigame.currentIndex);
+      item.classList.toggle("current", index === minigame.currentIndex);
+    }
+  }
+
+  hideArrowMinigame(): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-arrow-minigame]");
+    if (!layer) {
+      return;
+    }
+
+    layer.classList.add("hidden");
+    layer.innerHTML = "";
+  }
+
   destroy(): void {
     this.root.innerHTML = "";
   }
@@ -163,6 +236,53 @@ export class NarrativeOverlay {
         </div>
       </article>
     `;
+  }
+
+  private arrowMinigameMarkup(minigame: ArrowMinigameState): string {
+    const icon: Record<ArrowDirection, string> = {
+      up: "↑",
+      down: "↓",
+      left: "←",
+      right: "→",
+    };
+
+    const arrows = minigame.sequence
+      .map(
+        (direction, index) => `
+          <span
+            class="arrow-token ${index === minigame.currentIndex ? "current" : ""}"
+            data-arrow-index="${index}"
+          >
+            ${icon[direction]}
+          </span>
+        `,
+      )
+      .join("");
+
+    const progressRatio = minigame.currentIndex / minigame.sequence.length;
+    const timeRatio = minigame.timeRemainingMs / minigame.totalTimeMs;
+
+    return `
+      <article class="arrow-minigame" aria-label="Arrow work minigame">
+        <div class="arrow-work-icon">⌨</div>
+        <div class="arrow-sequence" data-arrow-sequence="${this.arrowSignature(minigame)}">${arrows}</div>
+        <div class="arrow-meter" aria-hidden="true">
+          <div class="arrow-meter-fill" data-arrow-progress style="width: ${Math.round(progressRatio * 100)}%"></div>
+        </div>
+        <div class="arrow-timer" aria-hidden="true">
+          <div class="arrow-timer-fill" data-arrow-time style="width: ${Math.round(timeRatio * 100)}%"></div>
+        </div>
+        <div class="arrow-caption">
+          <span>Tekan panah sesuai urutan</span>
+          <span data-arrow-loop>Loop ${Math.min(minigame.loopsCompleted + 1, minigame.loopsRequired)}/${minigame.loopsRequired}</span>
+          <span data-arrow-attempts>${minigame.attempts > 1 ? `Ulang ${minigame.attempts}` : "Tetap fokus"}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  private arrowSignature(minigame: ArrowMinigameState): string {
+    return `${minigame.loopsCompleted}:${minigame.sequence.join("-")}`;
   }
 
   private finishDialogue(): void {

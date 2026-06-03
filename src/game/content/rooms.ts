@@ -16,6 +16,7 @@ export const rooms: Record<string, RoomDefinition> = {
         radius: 58,
         dialogueId: "laptop",
         onCompleteFlags: ["checkedLaptop"],
+        startsDeskMinigame: true,
       },
       {
         id: "calendar",
@@ -83,6 +84,8 @@ export const rooms: Record<string, RoomDefinition> = {
         radius: 68,
         dialogueId: "work-desk",
         requiredFlags: ["handledFriend", "handledParentCall"],
+        startsDeskMinigame: true,
+        afterMinigameDialogueId: "collapse",
       },
       {
         id: "pressure-shadow",

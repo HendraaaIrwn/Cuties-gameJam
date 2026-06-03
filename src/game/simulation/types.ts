@@ -2,12 +2,26 @@ export type StoryPhase = "buildUp" | "actions" | "regret" | "ending";
 
 export type RoomId = "bedroom" | "street" | "replay";
 
+export type ArrowDirection = "up" | "down" | "left" | "right";
+
+export interface ArrowMinigameState {
+  sequence: ArrowDirection[];
+  currentIndex: number;
+  loopsCompleted: number;
+  loopsRequired: number;
+  timeRemainingMs: number;
+  totalTimeMs: number;
+  attempts: number;
+  mistakes: number;
+}
+
 export interface GameState {
   phase: StoryPhase;
   currentRoom: RoomId;
   storyFlags: Record<string, boolean>;
   regretScore: number;
   completedInteractions: string[];
+  arrowMinigame: ArrowMinigameState | null;
 }
 
 export interface Choice {
@@ -38,6 +52,8 @@ export interface Interactable {
   hiddenFlags?: string[];
   onCompleteFlags?: string[];
   repeatable?: boolean;
+  startsDeskMinigame?: boolean;
+  afterMinigameDialogueId?: string;
 }
 
 export interface RoomDefinition {

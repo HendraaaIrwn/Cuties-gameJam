@@ -4,11 +4,17 @@ import { createInitialState } from "../../game/simulation/state";
 import {
   applyChoice,
   canInteract,
+  clearArrowMinigame,
   completeInteraction,
   getCurrentRoom,
   getVisibleInteractables,
+  isArrowMinigameComplete,
+  pressArrowInput,
+  shouldStartDeskMinigame,
+  startDeskMinigame,
+  updateArrowMinigame,
 } from "../../game/simulation/rules";
-import type { GameState, Interactable } from "../../game/simulation/types";
+import type { ArrowDirection, GameState, Interactable } from "../../game/simulation/types";
 import { NarrativeOverlay } from "../../ui/NarrativeOverlay";
 import {
   createPlayerAnimations,
@@ -32,6 +38,7 @@ export class GameplayScene extends Phaser.Scene {
   private interactableViews = new Map<string, Phaser.GameObjects.Container>();
   private moveTarget: Phaser.Math.Vector2 | null = null;
   private pendingInteractableId: string | null = null;
+  private activeDeskInteractable: Interactable | null = null;
   private highlightedId: string | null = null;
   private dialogueActive = false;
   private playerFacing: PlayerFacing = "down";
@@ -68,6 +75,11 @@ export class GameplayScene extends Phaser.Scene {
       return;
     }
 
+    if (this.state.arrowMinigame) {
+      this.updateDeskMinigame(delta);
+      return;
+    }
+
     this.updateMovement(delta / 1000);
     this.updateInteractionFocus();
   }
@@ -75,6 +87,10 @@ export class GameplayScene extends Phaser.Scene {
   private bindInput(): void {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this.dialogueActive || this.state.phase === "ending") {
+        return;
+      }
+
+      if (this.state.arrowMinigame) {
         return;
       }
 
@@ -115,6 +131,7 @@ export class GameplayScene extends Phaser.Scene {
 
     this.overlay?.updateHud(this.state, room.title);
     this.overlay?.setPrompt(null);
+    this.overlay?.hideArrowMinigame();
   }
 
   private refreshInteractables(): void {
@@ -293,6 +310,12 @@ export class GameplayScene extends Phaser.Scene {
         this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
       },
       onComplete: () => {
+        if (shouldStartDeskMinigame(interactable)) {
+          this.dialogueActive = false;
+          this.startDeskWork(interactable);
+          return;
+        }
+
         const previousRoom = this.state.currentRoom;
         this.state = completeInteraction(this.state, interactable);
         this.dialogueActive = false;
@@ -312,5 +335,102 @@ export class GameplayScene extends Phaser.Scene {
         }
       },
     });
+  }
+
+  private startDeskWork(interactable: Interactable): void {
+    this.state = startDeskMinigame(this.state);
+    this.activeDeskInteractable = interactable;
+    this.pendingInteractableId = null;
+    this.moveTarget = null;
+    this.highlightedId = null;
+    this.playerFacing = "up";
+
+    if (this.player) {
+      this.player.setPosition(interactable.x, interactable.y + 24);
+      setPlayerIdle(this.player, this.playerFacing);
+      this.player.setDepth(this.player.y + 8);
+    }
+
+    this.overlay?.setPrompt(null);
+    if (this.state.arrowMinigame) {
+      this.overlay?.showArrowMinigame(this.state.arrowMinigame);
+    }
+  }
+
+  private updateDeskMinigame(delta: number): void {
+    const pressed = this.readPressedArrow();
+    if (pressed) {
+      this.state = pressArrowInput(this.state, pressed);
+    } else {
+      this.state = updateArrowMinigame(this.state, delta);
+    }
+
+    if (isArrowMinigameComplete(this.state)) {
+      this.finishDeskWork();
+      return;
+    }
+
+    if (this.state.arrowMinigame) {
+      this.overlay?.updateArrowMinigame(this.state.arrowMinigame);
+    }
+  }
+
+  private readPressedArrow(): ArrowDirection | null {
+    if (!this.cursors) {
+      return null;
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) return "up";
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) return "down";
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) return "left";
+    if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) return "right";
+    return null;
+  }
+
+  private finishDeskWork(): void {
+    const deskInteractable = this.activeDeskInteractable;
+    if (!deskInteractable) {
+      return;
+    }
+
+    this.overlay?.hideArrowMinigame();
+    this.state = clearArrowMinigame(this.state);
+    this.activeDeskInteractable = null;
+    this.pendingInteractableId = null;
+    this.moveTarget = null;
+
+    if (deskInteractable.afterMinigameDialogueId) {
+      this.dialogueActive = true;
+      this.overlay?.showDialogue(deskInteractable.afterMinigameDialogueId, {
+        onChoice: (choice) => {
+          this.state = applyChoice(this.state, choice);
+          this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+        },
+        onComplete: () => {
+          this.completeDeskWorkInteraction(deskInteractable);
+        },
+      });
+      return;
+    }
+
+    this.completeDeskWorkInteraction(deskInteractable);
+  }
+
+  private completeDeskWorkInteraction(deskInteractable: Interactable): void {
+    const previousRoom = this.state.currentRoom;
+    this.state = completeInteraction(this.state, deskInteractable);
+    this.dialogueActive = false;
+
+    if (this.state.phase === "ending") {
+      this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+      this.overlay?.showEnding(this.state.regretScore, () => this.scene.restart());
+      return;
+    }
+
+    if (previousRoom !== this.state.currentRoom) {
+      this.renderRoom();
+    } else {
+      this.refreshInteractables();
+    }
   }
 }

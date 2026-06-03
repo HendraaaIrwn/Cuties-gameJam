@@ -3,9 +3,12 @@ import type { AssetManifest } from "../game/simulation/types";
 export const assetManifest: AssetManifest = {
   characters: {
     "character.player": "/assets/characters/player/Sprite_0006.png",
-    "character.player.walk.right.0": "/assets/characters/player/Sprite_0000.png",
-    "character.player.walk.right.1": "/assets/characters/player/Sprite_0001.png",
-    "character.player.walk.right.2": "/assets/characters/player/Sprite_0002.png",
+    "character.player.walk.right.0": "/assets/characters/player/Sprite_00010.png",
+    "character.player.walk.right.1": "/assets/characters/player/Sprite_00011.png",
+    "character.player.walk.right.2": "/assets/characters/player/Sprite_00012.png",
+    "character.player.walk.right.3": "/assets/characters/player/Sprite_00013.png",
+    "character.player.walk.right.4": "/assets/characters/player/Sprite_00014.png",
+    "character.player.walk.right.5": "/assets/characters/player/Sprite_00015.png",
     "character.player.walk.left.0": "/assets/characters/player/Sprite_0003.png",
     "character.player.walk.left.1": "/assets/characters/player/Sprite_0004.png",
     "character.player.walk.left.2": "/assets/characters/player/Sprite_0005.png",

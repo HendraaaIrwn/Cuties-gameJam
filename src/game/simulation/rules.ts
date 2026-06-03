@@ -1,9 +1,22 @@
 import { rooms } from "../content/rooms";
-import type { Choice, GameState, Interactable, RoomDefinition } from "./types";
+import type {
+  ArrowDirection,
+  ArrowMinigameState,
+  Choice,
+  GameState,
+  Interactable,
+  RoomDefinition,
+} from "./types";
 
 const buildUpRequired = ["laptop", "calendar", "mirror"];
 const actionsRequired = ["friend", "parent-call", "work-desk"];
 const regretRequired = ["replay-friend", "replay-parent", "final-question"];
+const arrowDirections: ArrowDirection[] = ["up", "down", "left", "right"];
+const deskSequenceLength = 6;
+const deskLoopCount = 5;
+const deskTimeLimitMs = 9000;
+const deskTimeStepMs = 1500;
+const deskMinimumTimeMs = 3600;
 
 export function hasFlags(state: GameState, flags: string[] = []): boolean {
   return flags.every((flag) => state.storyFlags[flag]);
@@ -40,6 +53,7 @@ export function applyChoice(state: GameState, choice: Choice): GameState {
     ...state,
     storyFlags: { ...state.storyFlags },
     completedInteractions: [...state.completedInteractions],
+    arrowMinigame: state.arrowMinigame,
     regretScore: Math.max(0, state.regretScore + (choice.regretDelta ?? 0)),
   };
 
@@ -64,6 +78,84 @@ export function completeInteraction(state: GameState, interactable: Interactable
   }
 
   return advancePhase(nextState);
+}
+
+export function shouldStartDeskMinigame(interactable: Interactable): boolean {
+  return interactable.startsDeskMinigame === true;
+}
+
+export function startDeskMinigame(state: GameState): GameState {
+  return {
+    ...state,
+    storyFlags: { ...state.storyFlags, workingAtDesk: true },
+    arrowMinigame: createArrowMinigame(),
+  };
+}
+
+export function updateArrowMinigame(state: GameState, elapsedMs: number): GameState {
+  if (!state.arrowMinigame) {
+    return state;
+  }
+
+  const timeRemainingMs = Math.max(0, state.arrowMinigame.timeRemainingMs - elapsedMs);
+  if (timeRemainingMs > 0) {
+    return {
+      ...state,
+      arrowMinigame: {
+        ...state.arrowMinigame,
+        timeRemainingMs,
+      },
+    };
+  }
+
+  return {
+    ...state,
+    arrowMinigame: createArrowMinigame(
+      state.arrowMinigame.attempts + 1,
+      state.arrowMinigame.mistakes + 1,
+    ),
+  };
+}
+
+export function pressArrowInput(state: GameState, direction: ArrowDirection): GameState {
+  if (!state.arrowMinigame) {
+    return state;
+  }
+
+  const expected = state.arrowMinigame.sequence[state.arrowMinigame.currentIndex];
+  if (direction !== expected) {
+    return {
+      ...state,
+      arrowMinigame: {
+        ...state.arrowMinigame,
+        currentIndex: Math.max(0, state.arrowMinigame.currentIndex - 1),
+        mistakes: state.arrowMinigame.mistakes + 1,
+      },
+    };
+  }
+
+  return {
+    ...state,
+    arrowMinigame: {
+      ...state.arrowMinigame,
+      ...advanceArrowProgress(state.arrowMinigame),
+    },
+  };
+}
+
+export function isArrowMinigameComplete(state: GameState): boolean {
+  return Boolean(
+    state.arrowMinigame &&
+      state.arrowMinigame.loopsCompleted >= state.arrowMinigame.loopsRequired,
+  );
+}
+
+export function clearArrowMinigame(state: GameState): GameState {
+  return {
+    ...state,
+    storyFlags: { ...state.storyFlags, workingAtDesk: false, completedDeskMinigame: true },
+    arrowMinigame: null,
+  };
 }
 
 export function advancePhase(state: GameState): GameState {
@@ -99,3 +191,53 @@ export function advancePhase(state: GameState): GameState {
 
   return state;
 }
+
+function createArrowMinigame(attempts = 1, mistakes = 0): ArrowMinigameState {
+  const totalTimeMs = getDeskLoopTimeLimit(0);
+
+  return {
+    sequence: Array.from({ length: deskSequenceLength }, () => PhaserlessRandom.pick(arrowDirections)),
+    currentIndex: 0,
+    loopsCompleted: 0,
+    loopsRequired: deskLoopCount,
+    timeRemainingMs: totalTimeMs,
+    totalTimeMs,
+    attempts,
+    mistakes,
+  };
+}
+
+function advanceArrowProgress(minigame: ArrowMinigameState): Partial<ArrowMinigameState> {
+  const nextIndex = minigame.currentIndex + 1;
+  if (nextIndex < minigame.sequence.length) {
+    return { currentIndex: nextIndex };
+  }
+
+  const loopsCompleted = minigame.loopsCompleted + 1;
+  if (loopsCompleted >= minigame.loopsRequired) {
+    return {
+      currentIndex: minigame.sequence.length,
+      loopsCompleted,
+    };
+  }
+
+  const totalTimeMs = getDeskLoopTimeLimit(loopsCompleted);
+
+  return {
+    sequence: Array.from({ length: deskSequenceLength }, () => PhaserlessRandom.pick(arrowDirections)),
+    currentIndex: 0,
+    loopsCompleted,
+    timeRemainingMs: totalTimeMs,
+    totalTimeMs,
+  };
+}
+
+function getDeskLoopTimeLimit(loopsCompleted: number): number {
+  return Math.max(deskMinimumTimeMs, deskTimeLimitMs - loopsCompleted * deskTimeStepMs);
+}
+
+const PhaserlessRandom = {
+  pick<T>(items: readonly T[]): T {
+    return items[Math.floor(Math.random() * items.length)];
+  },
+};

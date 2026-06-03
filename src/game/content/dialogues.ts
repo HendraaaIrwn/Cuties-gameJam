@@ -150,7 +150,6 @@ export const dialogues: Record<string, DialogueNode> = {
     speaker: "Raka",
     portraitKey: "player",
     text: "Tanganku gemetar, tapi progres bar ini hampir penuh. Sedikit lagi. Sedikit lagi.",
-    next: "collapse",
   },
   collapse: {
     id: "collapse",
