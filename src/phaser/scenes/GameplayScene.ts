@@ -34,7 +34,7 @@ export class GameplayScene extends Phaser.Scene {
   private pendingInteractableId: string | null = null;
   private highlightedId: string | null = null;
   private dialogueActive = false;
-  private playerFacing: PlayerFacing = "right";
+  private playerFacing: PlayerFacing = "down";
 
   constructor() {
     super("GameplayScene");
@@ -190,8 +190,10 @@ export class GameplayScene extends Phaser.Scene {
       return;
     }
 
-    if (direction.x !== 0) {
+    if (Math.abs(direction.x) >= Math.abs(direction.y)) {
       this.playerFacing = direction.x >= 0 ? "right" : "left";
+    } else {
+      this.playerFacing = direction.y >= 0 ? "down" : "up";
     }
 
     playPlayerWalk(this.player, this.playerFacing);

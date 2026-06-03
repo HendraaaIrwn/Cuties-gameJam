@@ -1,11 +1,13 @@
 import Phaser from "phaser";
 import type { Interactable, RoomId } from "../../game/simulation/types";
 
-export type PlayerFacing = "right" | "left";
+export type PlayerFacing = "right" | "left" | "up" | "down";
 
 const playerFrames: Record<PlayerFacing, string[]> = {
   right: ["player-right-0", "player-right-1", "player-right-2"],
   left: ["player-left-0", "player-left-1", "player-left-2"],
+  down: ["player-down-0", "player-down-1"],
+  up: ["player-up-0", "player-up-1"],
 };
 
 const playerFiles: Record<string, string> = {
@@ -15,6 +17,10 @@ const playerFiles: Record<string, string> = {
   "player-left-0": "/assets/characters/player/Sprite_0003.png",
   "player-left-1": "/assets/characters/player/Sprite_0004.png",
   "player-left-2": "/assets/characters/player/Sprite_0005.png",
+  "player-down-0": "/assets/characters/player/Sprite_0006.png",
+  "player-down-1": "/assets/characters/player/Sprite_0007.png",
+  "player-up-0": "/assets/characters/player/Sprite_0008.png",
+  "player-up-1": "/assets/characters/player/Sprite_0009.png",
 };
 
 export function preloadPlayerSprites(scene: Phaser.Scene): void {
@@ -33,7 +39,7 @@ export function createPlayerAnimations(scene: Phaser.Scene): void {
     scene.anims.create({
       key,
       frames: frames.map((frameKey) => ({ key: frameKey })),
-      frameRate: 7,
+      frameRate: facing === "up" || facing === "down" ? 5 : 7,
       repeat: -1,
     });
   }
@@ -71,7 +77,7 @@ export function drawRoom(scene: Phaser.Scene, graphics: Phaser.GameObjects.Graph
 }
 
 export function createPlayer(scene: Phaser.Scene): Phaser.GameObjects.Sprite {
-  const sprite = scene.add.sprite(0, 0, playerFrames.right[0]);
+  const sprite = scene.add.sprite(0, 0, playerFrames.down[0]);
   sprite.setOrigin(0.5, 0.9);
   sprite.setScale(2.2);
   sprite.setDepth(20);
