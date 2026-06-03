@@ -130,7 +130,7 @@ export class NarrativeOverlay {
     }
 
     const progress = layer.querySelector<HTMLElement>("[data-arrow-progress]");
-    const timer = layer.querySelector<HTMLElement>("[data-arrow-time]");
+    const progressText = layer.querySelector<HTMLElement>("[data-arrow-progress-text]");
     const attempts = layer.querySelector<HTMLElement>("[data-arrow-attempts]");
     const loop = layer.querySelector<HTMLElement>("[data-arrow-loop]");
     const currentMarkup = layer.querySelector<HTMLElement>("[data-arrow-sequence]");
@@ -145,11 +145,11 @@ export class NarrativeOverlay {
     const timeRatio = minigame.timeRemainingMs / minigame.totalTimeMs;
 
     if (progress) {
-      progress.style.width = `${Math.round(progressRatio * 100)}%`;
+      progress.style.width = `${Math.round(timeRatio * 100)}%`;
     }
 
-    if (timer) {
-      timer.style.width = `${Math.round(timeRatio * 100)}%`;
+    if (progressText) {
+      progressText.textContent = `${Math.round(progressRatio * 100)}%`;
     }
 
     if (attempts) {
@@ -264,16 +264,13 @@ export class NarrativeOverlay {
 
     return `
       <article class="arrow-minigame" aria-label="Arrow work minigame">
-        <div class="arrow-work-icon">⌨</div>
+        <div class="arrow-work-icon" aria-hidden="true">☝</div>
         <div class="arrow-sequence" data-arrow-sequence="${this.arrowSignature(minigame)}">${arrows}</div>
         <div class="arrow-meter" aria-hidden="true">
-          <div class="arrow-meter-fill" data-arrow-progress style="width: ${Math.round(progressRatio * 100)}%"></div>
-        </div>
-        <div class="arrow-timer" aria-hidden="true">
-          <div class="arrow-timer-fill" data-arrow-time style="width: ${Math.round(timeRatio * 100)}%"></div>
+          <div class="arrow-meter-fill" data-arrow-progress style="width: ${Math.round(timeRatio * 100)}%"></div>
         </div>
         <div class="arrow-caption">
-          <span>Tekan panah sesuai urutan</span>
+          <span class="arrow-progress-text" data-arrow-progress-text>${Math.round(progressRatio * 100)}%</span>
           <span data-arrow-loop>Loop ${Math.min(minigame.loopsCompleted + 1, minigame.loopsRequired)}/${minigame.loopsRequired}</span>
           <span data-arrow-attempts>${minigame.attempts > 1 ? `Ulang ${minigame.attempts}` : "Tetap fokus"}</span>
         </div>
