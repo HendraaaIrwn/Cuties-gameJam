@@ -3,19 +3,30 @@ import type { RoomDefinition } from "../simulation/types";
 export const rooms: Record<string, RoomDefinition> = {
   bedroom: {
     id: "bedroom",
-    title: "Kamar Raka",
+    title: "Raka's Room",
     backgroundKey: "room.bedroom",
-    playerStart: { x: 330, y: 486 },
+    playerStart: { x: 600, y: 486 },
     interactables: [
       {
         id: "door",
-        label: "Pintu",
+        label: "Door",
         kind: "object",
-        x: 160,
+        x: 260,
         y: 486,
-        radius: 130,
+        radius: 45,
         dialogueId: "door",
         onCompleteFlags: ["checkedDoor"],
+        repeatable: true,
+      },
+      {
+        id: "wardrobe",
+        label: "Mirror Wardrobe",
+        kind: "object",
+        x: 100,
+        y: 486,
+        radius: 45,
+        dialogueId: "wardrobe",
+        onCompleteFlags: ["checkedWardrobe"],
         repeatable: true,
       },
       {
@@ -32,7 +43,7 @@ export const rooms: Record<string, RoomDefinition> = {
       },
       {
         id: "bed",
-        label: "Kasur",
+        label: "Bed",
         kind: "object",
         x: 860,
         y: 428,
@@ -45,7 +56,7 @@ export const rooms: Record<string, RoomDefinition> = {
   },
   street: {
     id: "street",
-    title: "Jalan Pulang",
+    title: "The Way Home",
     backgroundKey: "room.street",
     playerStart: { x: 118, y: 386 },
     interactables: [
@@ -60,7 +71,7 @@ export const rooms: Record<string, RoomDefinition> = {
       },
       {
         id: "parent-call",
-        label: "Telepon Ibu",
+        label: "Mom's Call",
         kind: "object",
         x: 598,
         y: 386,
@@ -69,7 +80,7 @@ export const rooms: Record<string, RoomDefinition> = {
       },
       {
         id: "work-desk",
-        label: "Meja Kerja 24 Jam",
+        label: "24-Hour Work Desk",
         kind: "object",
         x: 790,
         y: 348,
@@ -81,7 +92,7 @@ export const rooms: Record<string, RoomDefinition> = {
       },
       {
         id: "pressure-shadow",
-        label: "Orang-orang Yang Lebih Cepat",
+        label: "People Moving Faster",
         kind: "shadow",
         x: 706,
         y: 384,
@@ -93,7 +104,7 @@ export const rooms: Record<string, RoomDefinition> = {
   },
   replay: {
     id: "replay",
-    title: "Rekaman Hidup",
+    title: "Life Recording",
     backgroundKey: "room.replay",
     playerStart: { x: 480, y: 386 },
     interactables: [
@@ -109,7 +120,7 @@ export const rooms: Record<string, RoomDefinition> = {
       },
       {
         id: "replay-parent",
-        label: "What if: Rumah",
+        label: "What if: Home",
         kind: "npc",
         x: 504,
         y: 372,
@@ -119,7 +130,7 @@ export const rooms: Record<string, RoomDefinition> = {
       },
       {
         id: "final-question",
-        label: "Pertanyaan Terakhir",
+        label: "Final Question",
         kind: "shadow",
         x: 728,
         y: 370,

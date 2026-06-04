@@ -7,6 +7,7 @@ export function createInitialState(): GameState {
     storyFlags: {},
     completedInteractions: [],
     arrowMinigame: null,
+    money: 125,
   };
 }
 
@@ -22,5 +23,6 @@ export function cloneState(state: GameState): GameState {
           sequence: [...state.arrowMinigame.sequence],
         }
       : null,
+    money: state.money,
   };
 }

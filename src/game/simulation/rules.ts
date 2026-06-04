@@ -17,6 +17,7 @@ const deskLoopCount = 3;
 const deskTimeLimitMs = 6000;
 const deskTimeStepMs = 2000;
 const deskMinimumTimeMs = 3600;
+const workRewardMoney = 25;
 
 export function hasFlags(state: GameState, flags: string[] = []): boolean {
   return flags.every((flag) => state.storyFlags[flag]);
@@ -77,6 +78,15 @@ export function completeInteraction(state: GameState, interactable: Interactable
   }
 
   return advancePhase(nextState);
+}
+
+export function earnMoney(state: GameState, amount = workRewardMoney): GameState {
+  return {
+    ...state,
+    storyFlags: { ...state.storyFlags },
+    completedInteractions: [...state.completedInteractions],
+    money: state.money + amount,
+  };
 }
 
 export function shouldStartDeskMinigame(interactable: Interactable): boolean {

@@ -12,6 +12,7 @@ export const assetManifest: AssetManifest = {
     "character.player.walk.left.0": "/assets/characters/player/Sprite_0003.png",
     "character.player.walk.left.1": "/assets/characters/player/Sprite_0004.png",
     "character.player.walk.left.2": "/assets/characters/player/Sprite_0005.png",
+    "character.player.idle.mirror": "/assets/characters/player/Sprite_0004.png",
     "character.player.walk.down.0": "/assets/characters/player/Sprite_0006.png",
     "character.player.walk.down.1": "/assets/characters/player/Sprite_0007.png",
     "character.player.walk.up.0": "/assets/characters/player/Sprite_0008.png",
@@ -36,8 +37,14 @@ export const assetManifest: AssetManifest = {
   ui: {
     "ui.textbox": "dom/textbox",
     "ui.interact": "procedural/interact",
+    "ui.mail": "/assets/ui/mail.png",
   },
   audio: {
     "sfx.player.footstep": "/assets/audio/footstep.wav",
+    "sfx.door.bell": "/assets/audio/door-bell.wav",
+    "sfx.door.knock": "/assets/audio/door-knock.wav",
+    "sfx.door.rustle": "/assets/audio/door-rustle.wav",
+    "sfx.keyboard.tap": "/assets/audio/spacebar.mp3",
+    "sfx.money.earn": "/assets/audio/earn-money.mp3",
   },
 };

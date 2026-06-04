@@ -4,6 +4,7 @@ import {
   applyChoice,
   clearArrowMinigame,
   completeInteraction,
+  earnMoney,
   getVisibleInteractables,
   isArrowMinigameComplete,
   pressArrowInput,
@@ -18,7 +19,7 @@ describe("story simulation", () => {
   it("applies choice flags without scoring", () => {
     const state = createInitialState();
     const nextState = applyChoice(state, {
-      label: "Tolak",
+      label: "Reject",
       setFlags: ["rejectedFriend", "handledFriend"],
     });
 
@@ -27,7 +28,7 @@ describe("story simulation", () => {
   });
 
   it("keeps bedroom interactions repeatable without advancing phase", () => {
-    const phaseOneIds = ["bed", "laptop", "door"];
+    const phaseOneIds = ["bed", "laptop", "door", "wardrobe"];
     const interactables = phaseOneIds.map((id) => {
       const interactable = rooms.bedroom.interactables.find((item) => item.id === id);
       if (!interactable) throw new Error(`missing ${id}`);
@@ -46,18 +47,18 @@ describe("story simulation", () => {
     expect(state.storyFlags.checkedBed).toBe(true);
     expect(state.storyFlags.checkedLaptop).toBe(true);
     expect(state.storyFlags.checkedDoor).toBe(true);
+    expect(state.storyFlags.checkedWardrobe).toBe(true);
     expect(state.storyFlags.phaseActionsStarted).toBeUndefined();
   });
 
   it("uses only the requested bedroom interaction fixtures", () => {
     const bedroomIds = rooms.bedroom.interactables.map((item) => item.id);
 
-    expect(bedroomIds).toEqual(["door", "laptop", "bed"]);
+    expect(bedroomIds).toEqual(["door", "wardrobe", "laptop", "bed"]);
     expect(rooms.bedroom.interactables.every((item) => item.repeatable)).toBe(true);
     expect(bedroomIds).not.toContain("clock");
     expect(bedroomIds).not.toContain("chair");
     expect(bedroomIds).not.toContain("desk");
-    expect(bedroomIds).not.toContain("wardrobe");
     expect(bedroomIds).not.toContain("calendar");
     expect(bedroomIds).not.toContain("mirror");
   });
@@ -73,6 +74,20 @@ describe("story simulation", () => {
     const distance = Math.hypot(door.x - wardrobeRightEdge.x, door.y - wardrobeRightEdge.y);
 
     expect(distance).toBeLessThanOrEqual(door.radius + 26);
+  });
+
+  it("keeps the bedroom door and mirror wardrobe focus areas separate", () => {
+    const door = rooms.bedroom.interactables.find((item) => item.id === "door");
+    const wardrobe = rooms.bedroom.interactables.find((item) => item.id === "wardrobe");
+
+    if (!door || !wardrobe) {
+      throw new Error("missing bedroom door or wardrobe fixture");
+    }
+
+    const focusPadding = 26;
+    const distance = Math.hypot(door.x - wardrobe.x, door.y - wardrobe.y);
+
+    expect(distance).toBeGreaterThan(door.radius + wardrobe.radius + focusPadding * 2);
   });
 
   it("keeps gated interactables hidden until required flags are present", () => {
@@ -126,6 +141,23 @@ describe("story simulation", () => {
     expect(state.arrowMinigame?.sequence).toHaveLength(6);
     expect(state.arrowMinigame?.loopsRequired).toBe(3);
     expect(state.arrowMinigame?.loopsCompleted).toBe(0);
+    expect(state.money).toBe(0);
+  });
+
+  it("adds $25 after completed laptop work is paid", () => {
+    let state = startDeskMinigame(createInitialState());
+
+    while (!isArrowMinigameComplete(state)) {
+      for (const direction of state.arrowMinigame?.sequence ?? []) {
+        state = pressArrowInput(state, direction);
+      }
+    }
+
+    state = clearArrowMinigame(state);
+    state = earnMoney(state);
+
+    expect(state.arrowMinigame).toBeNull();
+    expect(state.money).toBe(25);
   });
 
   it("completes the arrow minigame only after three loops are pressed", () => {

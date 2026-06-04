@@ -16,23 +16,26 @@ export class NarrativeOverlay {
   private readonly root: HTMLElement;
   private dialogueId: string | null = null;
   private callbacks: DialogueCallbacks | null = null;
-  private readonly handleDialogueKeyDown = (event: KeyboardEvent): void => {
+  private typewriterTimer: number | null = null;
+  private readonly handleEnterKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== "Enter" || event.repeat) {
       return;
     }
 
-    const layer = this.root.querySelector<HTMLElement>("[data-dialogue]");
-    if (!layer || layer.classList.contains("hidden")) {
-      return;
-    }
-
-    const node = this.dialogueId ? dialogues[this.dialogueId] : null;
-    if (!node || node.choices?.length) {
+    const focusedButton =
+      document.activeElement instanceof HTMLButtonElement &&
+      this.root.contains(document.activeElement) &&
+      this.isUsableButton(document.activeElement)
+        ? document.activeElement
+        : null;
+    const targetButton = focusedButton ?? this.findVisibleButton();
+    if (!targetButton) {
       return;
     }
 
     event.preventDefault();
-    this.advanceDialogue(node);
+    targetButton.focus({ preventScroll: true });
+    targetButton.click();
   };
 
   constructor(rootId = "ui-root") {
@@ -42,6 +45,7 @@ export class NarrativeOverlay {
     }
 
     this.root = root;
+    window.addEventListener("keydown", this.handleEnterKeyDown);
   }
 
   showTitle(onStart: () => void): void {
@@ -49,9 +53,9 @@ export class NarrativeOverlay {
       <section class="title-screen">
         <div class="title-copy">
           <p class="eyebrow">Walking Sim / Visual Novel</p>
-          <h1>Chained by People's Shadow</h1>
-          <p class="tagline">Toxic productivity, takut tertinggal, dan hidup yang baru terasa berarti saat sudah menjadi rekaman.</p>
-          <button class="primary-action" type="button">Mulai</button>
+          <h1>Chained by Other People's Shadows</h1>
+          <p class="tagline">Toxic productivity, fear of falling behind, and a life that only feels meaningful once it becomes a recording.</p>
+          <button class="primary-action" type="button">Start</button>
         </div>
       </section>
     `;
@@ -63,8 +67,10 @@ export class NarrativeOverlay {
     this.root.innerHTML = `
       <section class="hud" aria-live="polite">
         <div class="hud-chip" data-hud-room></div>
+        <div class="hud-chip" data-hud-money></div>
       </section>
       <section class="interaction-prompt hidden" data-prompt></section>
+      <section class="tutorial-guidance-layer hidden" data-tutorial-guidance></section>
       <section class="arrow-minigame-layer hidden" data-arrow-minigame></section>
       <section class="dialogue-layer hidden" data-dialogue></section>
       <section class="ending-layer hidden" data-ending></section>
@@ -73,13 +79,14 @@ export class NarrativeOverlay {
 
   updateHud(state: GameState, roomTitle: string): void {
     const phaseLabel: Record<GameState["phase"], string> = {
-      buildUp: "Fase I - Dorongan",
-      actions: "Fase II - Penolakan",
-      replay: "Fase III - Replay",
-      ending: "Akhir",
+      buildUp: "Phase I - Pressure",
+      actions: "Phase II - Refusal",
+      replay: "Phase III - Replay",
+      ending: "Ending",
     };
 
     this.setText("[data-hud-room]", `${phaseLabel[state.phase]} / ${roomTitle}`);
+    this.updateMoneyHud(state.money);
   }
 
   setPrompt(label: string | null): void {
@@ -88,14 +95,13 @@ export class NarrativeOverlay {
       return;
     }
 
-    prompt.textContent = label ? `E / Klik - ${label}` : "";
+    prompt.textContent = label ? `E / Click - ${label}` : "";
     prompt.classList.toggle("hidden", !label);
   }
 
   showDialogue(dialogueId: string, callbacks: DialogueCallbacks): void {
     this.dialogueId = dialogueId;
     this.callbacks = callbacks;
-    window.addEventListener("keydown", this.handleDialogueKeyDown);
     this.renderDialogue();
   }
 
@@ -108,10 +114,10 @@ export class NarrativeOverlay {
     ending.classList.remove("hidden");
     ending.innerHTML = `
       <article class="ending-card">
-        <p class="eyebrow">Rekaman selesai</p>
-        <h2>Hidup cuma sekali.</h2>
-        <p>Apa yang sebenarnya kamu kejar?</p>
-        <button class="primary-action" type="button">Main Lagi</button>
+        <p class="eyebrow">Recording complete</p>
+        <h2>You only live once.</h2>
+        <p>What are you really chasing?</p>
+        <button class="primary-action" type="button">Play Again</button>
       </article>
     `;
 
@@ -170,7 +176,7 @@ export class NarrativeOverlay {
 
     if (attempts) {
       attempts.textContent =
-        minigame.attempts > 1 ? `Ulang ${minigame.attempts}` : "Tetap fokus";
+        minigame.attempts > 1 ? `Retry ${minigame.attempts}` : "Stay focused";
     }
 
     if (loop) {
@@ -194,8 +200,70 @@ export class NarrativeOverlay {
     layer.innerHTML = "";
   }
 
+  showTutorialGuidance(message: string, onComplete: () => void): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-tutorial-guidance]");
+    if (!layer) {
+      return;
+    }
+
+    layer.classList.remove("hidden");
+    layer.innerHTML = `
+      <article class="tutorial-guidance">
+        <div class="tutorial-arrows" aria-hidden="true">
+          <span>↑</span>
+          <span>↓</span>
+          <span>←</span>
+          <span>→</span>
+        </div>
+        <p>${message}</p>
+        <button class="tutorial-start-button" type="button">Start</button>
+      </article>
+    `;
+
+    this.bindTutorialGuidanceButton(layer, onComplete);
+  }
+
+  showPlainTutorialGuidance(message: string, onComplete: () => void, buttonLabel = "Start"): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-tutorial-guidance]");
+    if (!layer) {
+      return;
+    }
+
+    layer.classList.remove("hidden");
+    layer.innerHTML = `
+      <article class="tutorial-guidance tutorial-guidance-plain">
+        <p>${message}</p>
+        <button class="tutorial-start-button" type="button">${buttonLabel}</button>
+      </article>
+    `;
+
+    this.bindTutorialGuidanceButton(layer, onComplete);
+  }
+
+  hideTutorialGuidance(): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-tutorial-guidance]");
+    if (!layer) {
+      return;
+    }
+
+    layer.classList.add("hidden");
+    layer.innerHTML = "";
+  }
+
+  private bindTutorialGuidanceButton(layer: HTMLElement, onComplete: () => void): void {
+    layer.querySelector("button")?.addEventListener(
+      "click",
+      () => {
+        this.hideTutorialGuidance();
+        onComplete();
+      },
+      { once: true },
+    );
+  }
+
   destroy(): void {
-    window.removeEventListener("keydown", this.handleDialogueKeyDown);
+    this.clearTypewriter();
+    window.removeEventListener("keydown", this.handleEnterKeyDown);
     this.root.innerHTML = "";
   }
 
@@ -214,8 +282,10 @@ export class NarrativeOverlay {
       return;
     }
 
+    this.clearTypewriter();
     layer.classList.remove("hidden");
     layer.innerHTML = this.dialogueMarkup(node);
+    this.startTypewriter(node.text);
 
     if (node.choices?.length) {
       const choiceHost = layer.querySelector("[data-choices]");
@@ -248,9 +318,9 @@ export class NarrativeOverlay {
         <div class="portrait ${node.portraitKey ?? "narrator"}"></div>
         <div class="dialogue-content">
           <div class="speaker">${node.speaker}</div>
-          <p>${node.text}</p>
+          <p data-dialogue-text></p>
           <div class="dialogue-actions" data-choices>
-            ${node.choices?.length ? "" : '<button class="continue-button" type="button">Lanjut</button>'}
+            ${node.choices?.length ? "" : '<button class="continue-button" type="button">Continue</button>'}
           </div>
         </div>
       </article>
@@ -291,7 +361,7 @@ export class NarrativeOverlay {
         <div class="arrow-caption">
           <span class="arrow-progress-text" data-arrow-progress-text>${Math.round(progressRatio * 100)}%</span>
           <span data-arrow-loop>Loop ${Math.min(minigame.loopsCompleted + 1, minigame.loopsRequired)}/${minigame.loopsRequired}</span>
-          <span data-arrow-attempts>${minigame.attempts > 1 ? `Ulang ${minigame.attempts}` : "Tetap fokus"}</span>
+          <span data-arrow-attempts>${minigame.attempts > 1 ? `Retry ${minigame.attempts}` : "Stay focused"}</span>
         </div>
       </article>
     `;
@@ -302,7 +372,7 @@ export class NarrativeOverlay {
   }
 
   private finishDialogue(): void {
-    window.removeEventListener("keydown", this.handleDialogueKeyDown);
+    this.clearTypewriter();
     const layer = this.root.querySelector<HTMLElement>("[data-dialogue]");
     layer?.classList.add("hidden");
     if (layer) {
@@ -314,10 +384,65 @@ export class NarrativeOverlay {
     this.callbacks = null;
   }
 
+  private findVisibleButton(): HTMLButtonElement | null {
+    return [...this.root.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+      this.isUsableButton(button),
+    ) ?? null;
+  }
+
+  private isUsableButton(button: HTMLButtonElement): boolean {
+    if (button.disabled || button.closest(".hidden")) {
+      return false;
+    }
+
+    return button.getClientRects().length > 0;
+  }
+
   private setText(selector: string, text: string): void {
     const element = this.root.querySelector<HTMLElement>(selector);
     if (element) {
       element.textContent = text;
+    }
+  }
+
+  private updateMoneyHud(money: number): void {
+    const element = this.root.querySelector<HTMLElement>("[data-hud-money]");
+    if (!element) {
+      return;
+    }
+
+    element.classList.add("hud-money");
+    element.innerHTML = `
+      <span class="coin-icon" aria-hidden="true"></span>
+      <span class="money-label">$${money}</span>
+    `;
+  }
+
+  private startTypewriter(text: string): void {
+    const textElement = this.root.querySelector<HTMLElement>("[data-dialogue-text]");
+    if (!textElement) {
+      return;
+    }
+
+    textElement.textContent = "";
+    textElement.classList.add("typewriter-active");
+
+    let index = 0;
+    this.typewriterTimer = window.setInterval(() => {
+      index += 1;
+      textElement.textContent = text.slice(0, index);
+
+      if (index >= text.length) {
+        this.clearTypewriter();
+        textElement.classList.remove("typewriter-active");
+      }
+    }, 22);
+  }
+
+  private clearTypewriter(): void {
+    if (this.typewriterTimer !== null) {
+      window.clearInterval(this.typewriterTimer);
+      this.typewriterTimer = null;
     }
   }
 }

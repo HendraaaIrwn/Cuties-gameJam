@@ -129,6 +129,46 @@ h1 {
   font-size: 13px;
 }
 
+.hud-money {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-color: rgba(255, 224, 92, 0.92);
+  background: rgba(31, 24, 13, 0.82);
+  color: #ffd84d;
+  text-shadow: 0 2px 0 rgba(75, 48, 7, 0.86);
+}
+
+.coin-icon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background: #f2b72f;
+  box-shadow:
+    0 0 0 2px #6d470e,
+    inset 3px 0 0 #ffe26a,
+    inset -3px 0 0 #b87917,
+    0 3px 0 rgba(0, 0, 0, 0.36);
+  image-rendering: pixelated;
+}
+
+.coin-icon::after {
+  position: absolute;
+  left: 6px;
+  top: 3px;
+  width: 4px;
+  height: 10px;
+  background: #fff1a3;
+  box-shadow: 0 0 0 1px rgba(109, 71, 14, 0.28);
+  content: "";
+}
+
+.money-label {
+  color: #ffd84d;
+  font-weight: 900;
+}
+
 .interaction-prompt {
   position: absolute;
   left: 50%;
@@ -147,6 +187,67 @@ h1 {
   bottom: 0;
   padding: 18px;
   pointer-events: auto;
+}
+
+.tutorial-guidance-layer {
+  position: absolute;
+  left: 50%;
+  top: 78px;
+  width: min(430px, calc(100vw - 28px));
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.tutorial-guidance {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 14px 16px 16px;
+  border: 3px solid rgba(255, 246, 207, 0.86);
+  background: rgba(15, 17, 25, 0.88);
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.54),
+    inset 0 0 0 2px rgba(240, 195, 107, 0.22);
+  color: #fff6cf;
+  text-align: center;
+}
+
+.tutorial-guidance p {
+  margin: 0;
+  color: #f4f0d2;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.tutorial-guidance-plain {
+  padding-top: 16px;
+}
+
+.tutorial-arrows {
+  display: flex;
+  gap: 9px;
+  color: #ffffff;
+  font-family: "Arial Black", Impact, monospace;
+  font-size: 25px;
+  line-height: 1;
+  text-shadow:
+    -2px -2px 0 #151923,
+    2px -2px 0 #151923,
+    -2px 2px 0 #151923,
+    2px 2px 0 #151923,
+    0 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-start-button {
+  min-width: 86px;
+  border: 0;
+  padding: 9px 14px;
+  color: #191a22;
+  background: #f0c36b;
+  box-shadow: 0 4px 0 #8c5931;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .arrow-minigame-layer {
@@ -316,6 +417,20 @@ h1 {
   color: #eef0d8;
   font-size: clamp(15px, 2vw, 18px);
   line-height: 1.55;
+}
+
+.dialogue-content p.typewriter-active::after {
+  display: inline-block;
+  width: 0.58em;
+  color: #f0c36b;
+  content: "▌";
+  animation: typewriter-caret 0.72s steps(1) infinite;
+}
+
+@keyframes typewriter-caret {
+  50% {
+    opacity: 0;
+  }
 }
 
 .dialogue-actions {

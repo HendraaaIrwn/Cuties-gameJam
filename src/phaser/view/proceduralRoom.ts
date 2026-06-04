@@ -21,6 +21,7 @@ const playerFiles: Record<string, string> = {
   "player-left-0": "/assets/characters/player/Sprite_0003.png",
   "player-left-1": "/assets/characters/player/Sprite_0004.png",
   "player-left-2": "/assets/characters/player/Sprite_0005.png",
+  "player-mirror-idle": assetManifest.characters["character.player.idle.mirror"],
   "player-down-0": "/assets/characters/player/Sprite_0006.png",
   "player-down-1": "/assets/characters/player/Sprite_0007.png",
   "player-up-0": "/assets/characters/player/Sprite_0008.png",
@@ -82,6 +83,12 @@ export function setPlayerIdle(player: Phaser.GameObjects.Sprite, facing: PlayerF
   player.stop();
   setPlayerFlip(player, facing);
   player.setTexture(playerFrames[facing][0]);
+}
+
+export function setPlayerMirrorIdle(player: Phaser.GameObjects.Sprite): void {
+  player.stop();
+  player.setFlipX(false);
+  player.setTexture("player-mirror-idle");
 }
 
 export function playPlayerWalk(player: Phaser.GameObjects.Sprite, facing: PlayerFacing): void {

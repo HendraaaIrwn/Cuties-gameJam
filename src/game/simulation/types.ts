@@ -21,6 +21,7 @@ export interface GameState {
   storyFlags: Record<string, boolean>;
   completedInteractions: string[];
   arrowMinigame: ArrowMinigameState | null;
+  money: number;
 }
 
 export interface Choice {
