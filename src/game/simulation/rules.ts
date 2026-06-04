@@ -8,14 +8,14 @@ import type {
   RoomDefinition,
 } from "./types";
 
-const buildUpRequired = ["laptop", "calendar", "mirror"];
+const buildUpRequired: string[] = [];
 const actionsRequired = ["friend", "parent-call", "work-desk"];
-const regretRequired = ["replay-friend", "replay-parent", "final-question"];
+const replayRequired = ["replay-friend", "replay-parent", "final-question"];
 const arrowDirections: ArrowDirection[] = ["up", "down", "left", "right"];
 const deskSequenceLength = 6;
-const deskLoopCount = 5;
-const deskTimeLimitMs = 9000;
-const deskTimeStepMs = 1500;
+const deskLoopCount = 3;
+const deskTimeLimitMs = 6000;
+const deskTimeStepMs = 2000;
 const deskMinimumTimeMs = 3600;
 
 export function hasFlags(state: GameState, flags: string[] = []): boolean {
@@ -54,7 +54,6 @@ export function applyChoice(state: GameState, choice: Choice): GameState {
     storyFlags: { ...state.storyFlags },
     completedInteractions: [...state.completedInteractions],
     arrowMinigame: state.arrowMinigame,
-    regretScore: Math.max(0, state.regretScore + (choice.regretDelta ?? 0)),
   };
 
   for (const flag of choice.setFlags ?? []) {
@@ -161,7 +160,11 @@ export function clearArrowMinigame(state: GameState): GameState {
 export function advancePhase(state: GameState): GameState {
   const completed = new Set(state.completedInteractions);
 
-  if (state.phase === "buildUp" && buildUpRequired.every((id) => completed.has(id))) {
+  if (
+    state.phase === "buildUp" &&
+    buildUpRequired.length > 0 &&
+    buildUpRequired.every((id) => completed.has(id))
+  ) {
     return {
       ...state,
       phase: "actions",
@@ -174,14 +177,14 @@ export function advancePhase(state: GameState): GameState {
   if (state.phase === "actions" && actionsRequired.every((id) => completed.has(id))) {
     return {
       ...state,
-      phase: "regret",
+      phase: "replay",
       currentRoom: "replay",
       storyFlags: { ...state.storyFlags, collapsed: true },
       completedInteractions: [],
     };
   }
 
-  if (state.phase === "regret" && regretRequired.every((id) => completed.has(id))) {
+  if (state.phase === "replay" && replayRequired.every((id) => completed.has(id))) {
     return {
       ...state,
       phase: "ending",

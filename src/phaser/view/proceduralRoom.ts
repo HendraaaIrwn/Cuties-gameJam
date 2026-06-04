@@ -1,17 +1,11 @@
 import Phaser from "phaser";
+import { assetManifest } from "../../assets/manifest";
 import type { Interactable, RoomId } from "../../game/simulation/types";
 
 export type PlayerFacing = "right" | "left" | "up" | "down";
 
 const playerFrames: Record<PlayerFacing, string[]> = {
-  right: [
-    "player-right-0",
-    "player-right-1",
-    "player-right-2",
-    "player-right-3",
-    "player-right-4",
-    "player-right-5",
-  ],
+  right: ["player-left-0", "player-left-1", "player-left-2"],
   left: ["player-left-0", "player-left-1", "player-left-2"],
   down: ["player-down-0", "player-down-1"],
   up: ["player-up-0", "player-up-1"],
@@ -33,9 +27,38 @@ const playerFiles: Record<string, string> = {
   "player-up-1": "/assets/characters/player/Sprite_0009.png",
 };
 
+const bedroomLayerKeys = [
+  "room.bedroom.base",
+  "room.bedroom.door",
+  "room.bedroom.wardrobe",
+  "room.bedroom.clock",
+  "room.bedroom.bed",
+  "room.bedroom.chair",
+  "room.bedroom.desk",
+] as const;
+const bedroomInteractableIds = new Set(["bed", "chair", "door", "laptop", "wardrobe"]);
+const bedroomLayerName = "bedroom-room-layer";
+const bedroomScale = 7.5;
+const bedroomOffsetY = 30;
+const bedroomLayerDepths: Record<(typeof bedroomLayerKeys)[number], number> = {
+  "room.bedroom.base": -100,
+  "room.bedroom.door": -99,
+  "room.bedroom.wardrobe": -98,
+  "room.bedroom.clock": -97,
+  "room.bedroom.bed": -96,
+  "room.bedroom.chair": -95,
+  "room.bedroom.desk": 520,
+};
+
 export function preloadPlayerSprites(scene: Phaser.Scene): void {
   for (const [key, file] of Object.entries(playerFiles)) {
     scene.load.image(key, file);
+  }
+}
+
+export function preloadRoomSprites(scene: Phaser.Scene): void {
+  for (const key of bedroomLayerKeys) {
+    scene.load.image(key, assetManifest.rooms[key]);
   }
 }
 
@@ -57,18 +80,27 @@ export function createPlayerAnimations(scene: Phaser.Scene): void {
 
 export function setPlayerIdle(player: Phaser.GameObjects.Sprite, facing: PlayerFacing): void {
   player.stop();
+  setPlayerFlip(player, facing);
   player.setTexture(playerFrames[facing][0]);
 }
 
 export function playPlayerWalk(player: Phaser.GameObjects.Sprite, facing: PlayerFacing): void {
+  setPlayerFlip(player, facing);
   player.play(`player-walk-${facing}`, true);
+}
+
+function setPlayerFlip(player: Phaser.GameObjects.Sprite, facing: PlayerFacing): void {
+  player.setFlipX(facing === "right");
 }
 
 export function drawRoom(scene: Phaser.Scene, graphics: Phaser.GameObjects.Graphics, roomId: RoomId): void {
   graphics.clear();
+  clearBedroomLayers(scene);
 
   if (roomId === "bedroom") {
-    drawBedroom(graphics);
+    drawBedroom(scene);
+    scene.cameras.main.setBackgroundColor("#f5ece6");
+    return;
   } else if (roomId === "street") {
     drawStreet(graphics);
   } else {
@@ -89,7 +121,7 @@ export function drawRoom(scene: Phaser.Scene, graphics: Phaser.GameObjects.Graph
 export function createPlayer(scene: Phaser.Scene): Phaser.GameObjects.Sprite {
   const sprite = scene.add.sprite(0, 0, playerFrames.down[0]);
   sprite.setOrigin(0.5, 0.9);
-  sprite.setScale(2.2);
+  sprite.setScale(7);
   sprite.setDepth(20);
   return sprite;
 }
@@ -98,6 +130,12 @@ export function createInteractableView(
   scene: Phaser.Scene,
   interactable: Interactable,
 ): Phaser.GameObjects.Container {
+  if (bedroomInteractableIds.has(interactable.id)) {
+    const container = scene.add.container(interactable.x, interactable.y);
+    container.setDepth(interactable.y);
+    return container;
+  }
+
   const pieces: Phaser.GameObjects.GameObject[] = [];
   const labelY = interactable.kind === "object" ? -48 : -64;
 
@@ -156,23 +194,23 @@ function scalePieces(pieces: Phaser.GameObjects.GameObject[], scale: number): vo
   }
 }
 
-function drawBedroom(graphics: Phaser.GameObjects.Graphics): void {
-  graphics.fillStyle(0x202838).fillRect(0, 0, 960, 540);
-  graphics.fillStyle(0x2f3d4d).fillRect(0, 0, 960, 316);
-  graphics.fillStyle(0x445267).fillRect(58, 74, 260, 142);
-  graphics.fillStyle(0x111722).fillRect(72, 88, 232, 108);
-  graphics.fillStyle(0xe7a55f).fillRect(124, 120, 64, 34);
-  graphics.fillStyle(0x293544).fillRect(84, 336, 246, 76);
-  graphics.fillStyle(0x7591a0).fillRect(112, 300, 164, 48);
-  graphics.fillStyle(0x7c4d3c).fillRect(436, 354, 214, 28);
-  graphics.fillStyle(0x51352e).fillRect(456, 382, 24, 76);
-  graphics.fillStyle(0x51352e).fillRect(610, 382, 24, 76);
-  graphics.fillStyle(0x181c25).fillRect(514, 304, 72, 50);
-  graphics.fillStyle(0x8bb2c4).fillRect(522, 312, 56, 30);
-  graphics.fillStyle(0x5d6f72).fillRect(680, 124, 78, 110);
-  graphics.fillStyle(0xe4d6ad).fillRect(696, 140, 46, 14);
-  graphics.fillStyle(0x263342).fillRect(0, 414, 960, 126);
-  graphics.fillStyle(0x1b2430).fillRect(0, 454, 960, 86);
+function drawBedroom(scene: Phaser.Scene): void {
+  bedroomLayerKeys.forEach((key) => {
+    scene.add
+      .image(0, bedroomOffsetY, key)
+      .setName(bedroomLayerName)
+      .setOrigin(0, 0)
+      .setScale(bedroomScale)
+      .setDepth(bedroomLayerDepths[key]);
+  });
+}
+
+function clearBedroomLayers(scene: Phaser.Scene): void {
+  for (const child of [...scene.children.list]) {
+    if (child.name === bedroomLayerName) {
+      child.destroy();
+    }
+  }
 }
 
 function drawStreet(graphics: Phaser.GameObjects.Graphics): void {

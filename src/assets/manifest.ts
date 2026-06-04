@@ -22,6 +22,14 @@ export const assetManifest: AssetManifest = {
   },
   rooms: {
     "room.bedroom": "procedural/bedroom",
+    "room.bedroom.base": "/assets/environment/bedroom/base.png",
+    "room.bedroom.bed": "/assets/environment/bedroom/bed.png",
+    "room.bedroom.chair": "/assets/environment/bedroom/chair.png",
+    "room.bedroom.clock": "/assets/environment/bedroom/clock.png",
+    "room.bedroom.desk": "/assets/environment/bedroom/desk.png",
+    "room.bedroom.door": "/assets/environment/bedroom/door.png",
+    "room.bedroom.preview": "/assets/environment/bedroom/preview.png",
+    "room.bedroom.wardrobe": "/assets/environment/bedroom/wardrobe.png",
     "room.street": "procedural/street",
     "room.replay": "procedural/replay",
   },
@@ -29,5 +37,7 @@ export const assetManifest: AssetManifest = {
     "ui.textbox": "dom/textbox",
     "ui.interact": "procedural/interact",
   },
-  audio: {},
+  audio: {
+    "sfx.player.footstep": "/assets/audio/footstep.wav",
+  },
 };

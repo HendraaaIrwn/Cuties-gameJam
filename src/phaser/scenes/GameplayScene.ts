@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { assetManifest } from "../../assets/manifest";
 import { dialogues } from "../../game/content/dialogues";
 import { createInitialState } from "../../game/simulation/state";
 import {
@@ -23,12 +24,19 @@ import {
   drawRoom,
   playPlayerWalk,
   preloadPlayerSprites,
+  preloadRoomSprites,
   setPlayerIdle,
   setInteractableHighlighted,
   type PlayerFacing,
 } from "../view/proceduralRoom";
 
 export class GameplayScene extends Phaser.Scene {
+  private static readonly bedroomFloorY = 486;
+  private static readonly bedroomWardrobeCollider = { left: 135, right: 160 };
+  private static readonly bedroomDoorInteractionPose = { x: 200, y: 486, facing: "up" as const };
+  private static readonly bedroomLaptopInteractionPose = { x: 600, y: 486, facing: "up" as const };
+  private static readonly footstepVolume = 0.34;
+  private static readonly footstepRate = 1.5;
   private state: GameState = createInitialState();
   private overlay?: NarrativeOverlay;
   private roomGraphics?: Phaser.GameObjects.Graphics;
@@ -42,6 +50,7 @@ export class GameplayScene extends Phaser.Scene {
   private highlightedId: string | null = null;
   private dialogueActive = false;
   private playerFacing: PlayerFacing = "down";
+  private footstepSound?: Phaser.Sound.BaseSound;
 
   constructor() {
     super("GameplayScene");
@@ -49,6 +58,8 @@ export class GameplayScene extends Phaser.Scene {
 
   preload(): void {
     preloadPlayerSprites(this);
+    preloadRoomSprites(this);
+    this.load.audio("sfx.player.footstep", assetManifest.audio["sfx.player.footstep"]);
   }
 
   create(): void {
@@ -57,6 +68,11 @@ export class GameplayScene extends Phaser.Scene {
     this.overlay.mountHud();
     this.overlay.clearEnding();
     createPlayerAnimations(this);
+    this.footstepSound = this.sound.add("sfx.player.footstep", {
+      loop: true,
+      rate: GameplayScene.footstepRate,
+      volume: GameplayScene.footstepVolume,
+    });
 
     this.cursors = this.input.keyboard?.createCursorKeys();
     this.keys = this.input.keyboard?.addKeys("W,A,S,D,E,SPACE") as Record<
@@ -72,10 +88,12 @@ export class GameplayScene extends Phaser.Scene {
 
   update(_: number, delta: number): void {
     if (this.dialogueActive || this.state.phase === "ending") {
+      this.stopFootsteps();
       return;
     }
 
     if (this.state.arrowMinigame) {
+      this.stopFootsteps();
       this.updateDeskMinigame(delta);
       return;
     }
@@ -97,12 +115,12 @@ export class GameplayScene extends Phaser.Scene {
       const clicked = this.findInteractableAt(pointer.worldX, pointer.worldY);
       if (clicked) {
         this.pendingInteractableId = clicked.id;
-        this.moveTarget = new Phaser.Math.Vector2(clicked.x, clicked.y + 18);
+        this.moveTarget = new Phaser.Math.Vector2(clicked.x, this.getMoveTargetY(clicked.y + 18));
         return;
       }
 
       this.pendingInteractableId = null;
-      this.moveTarget = new Phaser.Math.Vector2(pointer.worldX, pointer.worldY);
+      this.moveTarget = new Phaser.Math.Vector2(pointer.worldX, this.getMoveTargetY(pointer.worldY));
     });
   }
 
@@ -120,6 +138,9 @@ export class GameplayScene extends Phaser.Scene {
 
     if (!this.player) {
       this.player = createPlayer(this);
+    }
+    if (this.isBedroom() && (this.playerFacing === "up" || this.playerFacing === "down")) {
+      this.playerFacing = "right";
     }
     this.player.setPosition(room.playerStart.x, room.playerStart.y);
     setPlayerIdle(this.player, this.playerFacing);
@@ -163,8 +184,12 @@ export class GameplayScene extends Phaser.Scene {
     const direction = new Phaser.Math.Vector2(0, 0);
     if (this.cursors.left.isDown || this.keys.A.isDown) direction.x -= 1;
     if (this.cursors.right.isDown || this.keys.D.isDown) direction.x += 1;
-    if (this.cursors.up.isDown || this.keys.W.isDown) direction.y -= 1;
-    if (this.cursors.down.isDown || this.keys.S.isDown) direction.y += 1;
+    const bedroomUpFacingPressed = this.isBedroomUpFacingPressed();
+    const bedroomDownFacingPressed = this.isBedroomDownFacingPressed();
+    if (!this.isBedroom()) {
+      if (this.cursors.up.isDown || this.keys.W.isDown) direction.y -= 1;
+      if (this.cursors.down.isDown || this.keys.S.isDown) direction.y += 1;
+    }
 
     if (Phaser.Input.Keyboard.JustDown(this.keys.E) || Phaser.Input.Keyboard.JustDown(this.keys.SPACE)) {
       this.tryInteract(this.highlightedId);
@@ -175,9 +200,16 @@ export class GameplayScene extends Phaser.Scene {
       this.pendingInteractableId = null;
       this.setPlayerWalkFromDirection(direction);
       direction.normalize().scale(speed * seconds);
-      this.player.x += direction.x;
+      const previousX = this.player.x;
+      const previousY = this.player.y;
+      this.player.x = this.resolveBedroomWardrobeCollision(this.player.x, this.player.x + direction.x);
       this.player.y += direction.y;
+      this.updateFootstepsForMovement(previousX, previousY, true);
     } else if (this.moveTarget) {
+      if (this.isBedroom()) {
+        this.moveTarget.y = GameplayScene.bedroomFloorY;
+        this.moveTarget.x = this.resolveBedroomWardrobeCollision(this.player.x, this.moveTarget.x);
+      }
       const toTarget = this.moveTarget.clone().subtract(new Phaser.Math.Vector2(this.player.x, this.player.y));
       const distance = toTarget.length();
       const step = speed * seconds;
@@ -185,20 +217,35 @@ export class GameplayScene extends Phaser.Scene {
         this.player.setPosition(this.moveTarget.x, this.moveTarget.y);
         this.moveTarget = null;
         setPlayerIdle(this.player, this.playerFacing);
+        this.stopFootsteps();
         this.tryInteract(this.pendingInteractableId);
         this.pendingInteractableId = null;
       } else {
         this.setPlayerWalkFromDirection(toTarget);
         toTarget.normalize().scale(step);
-        this.player.x += toTarget.x;
+        const previousX = this.player.x;
+        const previousY = this.player.y;
+        this.player.x = this.resolveBedroomWardrobeCollision(this.player.x, this.player.x + toTarget.x);
         this.player.y += toTarget.y;
+        this.updateFootstepsForMovement(previousX, previousY, false);
       }
     } else {
-      setPlayerIdle(this.player, this.playerFacing);
+      if (bedroomUpFacingPressed) {
+        this.playerFacing = "up";
+        playPlayerWalk(this.player, this.playerFacing);
+      } else if (bedroomDownFacingPressed) {
+        this.playerFacing = "down";
+        playPlayerWalk(this.player, this.playerFacing);
+      } else {
+        setPlayerIdle(this.player, this.playerFacing);
+      }
+      this.stopFootsteps();
     }
 
     this.player.x = Phaser.Math.Clamp(this.player.x, 38, 922);
-    this.player.y = Phaser.Math.Clamp(this.player.y, 276, 440);
+    this.player.y = this.isBedroom()
+      ? GameplayScene.bedroomFloorY
+      : Phaser.Math.Clamp(this.player.y, 276, 440);
     this.player.setDepth(this.player.y + 8);
   }
 
@@ -207,13 +254,45 @@ export class GameplayScene extends Phaser.Scene {
       return;
     }
 
-    if (Math.abs(direction.x) >= Math.abs(direction.y)) {
+    if (this.isBedroom()) {
+      this.playerFacing = direction.x >= 0 ? "right" : "left";
+    } else if (Math.abs(direction.x) >= Math.abs(direction.y)) {
       this.playerFacing = direction.x >= 0 ? "right" : "left";
     } else {
       this.playerFacing = direction.y >= 0 ? "down" : "up";
     }
 
     playPlayerWalk(this.player, this.playerFacing);
+  }
+
+  private updateFootstepsForMovement(
+    previousX: number,
+    previousY: number,
+    keepPlayingWhenBlocked: boolean,
+  ): void {
+    const moved = !!this.player && (this.player.x !== previousX || this.player.y !== previousY);
+    this.setFootstepsPlaying(moved || keepPlayingWhenBlocked);
+  }
+
+  private stopFootsteps(): void {
+    this.setFootstepsPlaying(false);
+  }
+
+  private setFootstepsPlaying(isWalking: boolean): void {
+    if (!this.footstepSound) {
+      return;
+    }
+
+    if (isWalking) {
+      if (!this.footstepSound.isPlaying) {
+        this.footstepSound.play();
+      }
+      return;
+    }
+
+    if (this.footstepSound.isPlaying) {
+      this.footstepSound.stop();
+    }
   }
 
   private updateInteractionFocus(): void {
@@ -303,6 +382,7 @@ export class GameplayScene extends Phaser.Scene {
   }
 
   private startInteractionDialogue(interactable: Interactable): void {
+    this.alignPlayerForInteraction(interactable);
     this.dialogueActive = true;
     this.overlay?.showDialogue(interactable.dialogueId, {
       onChoice: (choice) => {
@@ -324,7 +404,7 @@ export class GameplayScene extends Phaser.Scene {
 
         if (this.state.phase === "ending") {
           this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
-          this.overlay?.showEnding(this.state.regretScore, () => this.scene.restart());
+          this.overlay?.showEnding(() => this.scene.restart());
           return;
         }
 
@@ -337,16 +417,57 @@ export class GameplayScene extends Phaser.Scene {
     });
   }
 
+  private alignPlayerForInteraction(interactable: Interactable): void {
+    if (!this.player || !this.isBedroom()) {
+      return;
+    }
+
+    if (interactable.id === "bed") {
+      this.moveTarget = null;
+      this.pendingInteractableId = null;
+      this.playerFacing = "down";
+      setPlayerIdle(this.player, this.playerFacing);
+      this.player.setDepth(this.player.y + 8);
+      this.stopFootsteps();
+      return;
+    }
+
+    const pose =
+      interactable.id === "door"
+        ? GameplayScene.bedroomDoorInteractionPose
+        : interactable.id === "laptop"
+          ? GameplayScene.bedroomLaptopInteractionPose
+          : null;
+    if (!pose) {
+      return;
+    }
+
+    this.moveTarget = null;
+    this.pendingInteractableId = null;
+    this.playerFacing = pose.facing;
+    this.player.setPosition(pose.x, pose.y);
+    setPlayerIdle(this.player, this.playerFacing);
+    this.player.setDepth(this.player.y + 8);
+    this.stopFootsteps();
+  }
+
   private startDeskWork(interactable: Interactable): void {
     this.state = startDeskMinigame(this.state);
     this.activeDeskInteractable = interactable;
     this.pendingInteractableId = null;
     this.moveTarget = null;
     this.highlightedId = null;
-    this.playerFacing = "up";
+    this.playerFacing = this.isBedroom() ? GameplayScene.bedroomLaptopInteractionPose.facing : "up";
 
     if (this.player) {
-      this.player.setPosition(interactable.x, interactable.y + 24);
+      if (this.isBedroom()) {
+        this.player.setPosition(
+          GameplayScene.bedroomLaptopInteractionPose.x,
+          GameplayScene.bedroomLaptopInteractionPose.y,
+        );
+      } else {
+        this.player.setPosition(interactable.x, this.getMoveTargetY(interactable.y + 24));
+      }
       setPlayerIdle(this.player, this.playerFacing);
       this.player.setDepth(this.player.y + 8);
     }
@@ -423,7 +544,7 @@ export class GameplayScene extends Phaser.Scene {
 
     if (this.state.phase === "ending") {
       this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
-      this.overlay?.showEnding(this.state.regretScore, () => this.scene.restart());
+      this.overlay?.showEnding(() => this.scene.restart());
       return;
     }
 
@@ -432,5 +553,50 @@ export class GameplayScene extends Phaser.Scene {
     } else {
       this.refreshInteractables();
     }
+  }
+
+  private isBedroom(): boolean {
+    return this.state.currentRoom === "bedroom";
+  }
+
+  private getMoveTargetY(y: number): number {
+    return this.isBedroom() ? GameplayScene.bedroomFloorY : y;
+  }
+
+  private resolveBedroomWardrobeCollision(previousX: number, nextX: number): number {
+    if (!this.isBedroom()) {
+      return nextX;
+    }
+
+    const { left, right } = GameplayScene.bedroomWardrobeCollider;
+    if (previousX >= right && nextX < right) {
+      return right;
+    }
+
+    if (previousX <= left && nextX > left) {
+      return left;
+    }
+
+    if (previousX > left && previousX < right) {
+      return previousX < (left + right) / 2 ? left : right;
+    }
+
+    return nextX;
+  }
+
+  private isBedroomDownFacingPressed(): boolean {
+    if (!this.isBedroom() || !this.cursors || !this.keys) {
+      return false;
+    }
+
+    return this.cursors.down.isDown || this.keys.S.isDown;
+  }
+
+  private isBedroomUpFacingPressed(): boolean {
+    if (!this.isBedroom() || !this.cursors || !this.keys) {
+      return false;
+    }
+
+    return this.cursors.up.isDown || this.keys.W.isDown;
   }
 }

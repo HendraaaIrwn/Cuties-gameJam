@@ -16,6 +16,24 @@ export class NarrativeOverlay {
   private readonly root: HTMLElement;
   private dialogueId: string | null = null;
   private callbacks: DialogueCallbacks | null = null;
+  private readonly handleDialogueKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== "Enter" || event.repeat) {
+      return;
+    }
+
+    const layer = this.root.querySelector<HTMLElement>("[data-dialogue]");
+    if (!layer || layer.classList.contains("hidden")) {
+      return;
+    }
+
+    const node = this.dialogueId ? dialogues[this.dialogueId] : null;
+    if (!node || node.choices?.length) {
+      return;
+    }
+
+    event.preventDefault();
+    this.advanceDialogue(node);
+  };
 
   constructor(rootId = "ui-root") {
     const root = document.getElementById(rootId);
@@ -45,7 +63,6 @@ export class NarrativeOverlay {
     this.root.innerHTML = `
       <section class="hud" aria-live="polite">
         <div class="hud-chip" data-hud-room></div>
-        <div class="hud-chip regret" data-hud-regret></div>
       </section>
       <section class="interaction-prompt hidden" data-prompt></section>
       <section class="arrow-minigame-layer hidden" data-arrow-minigame></section>
@@ -58,12 +75,11 @@ export class NarrativeOverlay {
     const phaseLabel: Record<GameState["phase"], string> = {
       buildUp: "Fase I - Dorongan",
       actions: "Fase II - Penolakan",
-      regret: "Fase III - Replay",
+      replay: "Fase III - Replay",
       ending: "Akhir",
     };
 
     this.setText("[data-hud-room]", `${phaseLabel[state.phase]} / ${roomTitle}`);
-    this.setText("[data-hud-regret]", `Regret ${state.regretScore}`);
   }
 
   setPrompt(label: string | null): void {
@@ -79,10 +95,11 @@ export class NarrativeOverlay {
   showDialogue(dialogueId: string, callbacks: DialogueCallbacks): void {
     this.dialogueId = dialogueId;
     this.callbacks = callbacks;
+    window.addEventListener("keydown", this.handleDialogueKeyDown);
     this.renderDialogue();
   }
 
-  showEnding(regretScore: number, onRestart: () => void): void {
+  showEnding(onRestart: () => void): void {
     const ending = this.root.querySelector<HTMLElement>("[data-ending]");
     if (!ending) {
       return;
@@ -94,7 +111,6 @@ export class NarrativeOverlay {
         <p class="eyebrow">Rekaman selesai</p>
         <h2>Hidup cuma sekali.</h2>
         <p>Apa yang sebenarnya kamu kejar?</p>
-        <p class="ending-score">Regret score: ${regretScore}</p>
         <button class="primary-action" type="button">Main Lagi</button>
       </article>
     `;
@@ -179,6 +195,7 @@ export class NarrativeOverlay {
   }
 
   destroy(): void {
+    window.removeEventListener("keydown", this.handleDialogueKeyDown);
     this.root.innerHTML = "";
   }
 
@@ -217,10 +234,12 @@ export class NarrativeOverlay {
       return;
     }
 
-    layer.querySelector("button")?.addEventListener("click", () => {
-      this.dialogueId = node.next ?? null;
-      this.dialogueId ? this.renderDialogue() : this.finishDialogue();
-    });
+    layer.querySelector("button")?.addEventListener("click", () => this.advanceDialogue(node));
+  }
+
+  private advanceDialogue(node: DialogueNode): void {
+    this.dialogueId = node.next ?? null;
+    this.dialogueId ? this.renderDialogue() : this.finishDialogue();
   }
 
   private dialogueMarkup(node: DialogueNode): string {
@@ -283,6 +302,7 @@ export class NarrativeOverlay {
   }
 
   private finishDialogue(): void {
+    window.removeEventListener("keydown", this.handleDialogueKeyDown);
     const layer = this.root.querySelector<HTMLElement>("[data-dialogue]");
     layer?.classList.add("hidden");
     if (layer) {

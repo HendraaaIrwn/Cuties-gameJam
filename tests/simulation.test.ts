@@ -15,34 +15,64 @@ import { createInitialState } from "../src/game/simulation/state";
 import type { GameState } from "../src/game/simulation/types";
 
 describe("story simulation", () => {
-  it("applies choice flags and regret deltas", () => {
+  it("applies choice flags without scoring", () => {
     const state = createInitialState();
     const nextState = applyChoice(state, {
       label: "Tolak",
       setFlags: ["rejectedFriend", "handledFriend"],
-      regretDelta: 2,
     });
 
     expect(nextState.storyFlags.rejectedFriend).toBe(true);
     expect(nextState.storyFlags.handledFriend).toBe(true);
-    expect(nextState.regretScore).toBe(2);
   });
 
-  it("advances from build up to actions after required interactions", () => {
-    const [laptop, calendar, mirror] = ["laptop", "calendar", "mirror"].map((id) => {
+  it("keeps bedroom interactions repeatable without advancing phase", () => {
+    const phaseOneIds = ["bed", "laptop", "door"];
+    const interactables = phaseOneIds.map((id) => {
       const interactable = rooms.bedroom.interactables.find((item) => item.id === id);
       if (!interactable) throw new Error(`missing ${id}`);
       return interactable;
     });
 
     let state = createInitialState();
-    state = completeInteraction(state, laptop);
-    state = completeInteraction(state, calendar);
-    state = completeInteraction(state, mirror);
+    for (const interactable of interactables) {
+      state = completeInteraction(state, interactable);
+      state = completeInteraction(state, interactable);
+    }
 
-    expect(state.phase).toBe("actions");
-    expect(state.currentRoom).toBe("street");
-    expect(state.storyFlags.phaseActionsStarted).toBe(true);
+    expect(state.phase).toBe("buildUp");
+    expect(state.currentRoom).toBe("bedroom");
+    expect(state.completedInteractions).toEqual([]);
+    expect(state.storyFlags.checkedBed).toBe(true);
+    expect(state.storyFlags.checkedLaptop).toBe(true);
+    expect(state.storyFlags.checkedDoor).toBe(true);
+    expect(state.storyFlags.phaseActionsStarted).toBeUndefined();
+  });
+
+  it("uses only the requested bedroom interaction fixtures", () => {
+    const bedroomIds = rooms.bedroom.interactables.map((item) => item.id);
+
+    expect(bedroomIds).toEqual(["door", "laptop", "bed"]);
+    expect(rooms.bedroom.interactables.every((item) => item.repeatable)).toBe(true);
+    expect(bedroomIds).not.toContain("clock");
+    expect(bedroomIds).not.toContain("chair");
+    expect(bedroomIds).not.toContain("desk");
+    expect(bedroomIds).not.toContain("wardrobe");
+    expect(bedroomIds).not.toContain("calendar");
+    expect(bedroomIds).not.toContain("mirror");
+  });
+
+  it("keeps the bedroom door reachable from the wardrobe collider edge", () => {
+    const door = rooms.bedroom.interactables.find((item) => item.id === "door");
+
+    if (!door) {
+      throw new Error("missing door fixture");
+    }
+
+    const wardrobeRightEdge = { x: 160, y: rooms.bedroom.playerStart.y };
+    const distance = Math.hypot(door.x - wardrobeRightEdge.x, door.y - wardrobeRightEdge.y);
+
+    expect(distance).toBeLessThanOrEqual(door.radius + 26);
   });
 
   it("keeps gated interactables hidden until required flags are present", () => {
@@ -65,19 +95,19 @@ describe("story simulation", () => {
     expect(getVisibleInteractables(unlockedState).some((item) => item.id === "work-desk")).toBe(true);
   });
 
-  it("marks both laptop and work desk interactions as desk minigame triggers", () => {
+  it("marks both bedroom laptop and work desk interactions as desk minigame triggers", () => {
     const laptop = rooms.bedroom.interactables.find((item) => item.id === "laptop");
     const workDesk = rooms.street.interactables.find((item) => item.id === "work-desk");
-    const calendar = rooms.bedroom.interactables.find((item) => item.id === "calendar");
+    const bed = rooms.bedroom.interactables.find((item) => item.id === "bed");
 
-    if (!laptop || !workDesk || !calendar) {
+    if (!laptop || !workDesk || !bed) {
       throw new Error("missing minigame trigger fixture");
     }
 
     expect(shouldStartDeskMinigame(laptop)).toBe(true);
     expect(shouldStartDeskMinigame(workDesk)).toBe(true);
     expect(workDesk.afterMinigameDialogueId).toBe("collapse");
-    expect(shouldStartDeskMinigame(calendar)).toBe(false);
+    expect(shouldStartDeskMinigame(bed)).toBe(false);
   });
 
   it("keeps the desk interaction incomplete while the arrow minigame is running", () => {
@@ -94,11 +124,11 @@ describe("story simulation", () => {
     expect(state.storyFlags.workingAtDesk).toBe(true);
     expect(state.completedInteractions).not.toContain("work-desk");
     expect(state.arrowMinigame?.sequence).toHaveLength(6);
-    expect(state.arrowMinigame?.loopsRequired).toBe(5);
+    expect(state.arrowMinigame?.loopsRequired).toBe(3);
     expect(state.arrowMinigame?.loopsCompleted).toBe(0);
   });
 
-  it("completes the arrow minigame only after five loops are pressed", () => {
+  it("completes the arrow minigame only after three loops are pressed", () => {
     let state = startDeskMinigame({
       ...createInitialState(),
       phase: "actions",
@@ -120,7 +150,7 @@ describe("story simulation", () => {
       }
     }
 
-    expect(state.arrowMinigame?.loopsCompleted).toBe(5);
+    expect(state.arrowMinigame?.loopsCompleted).toBe(3);
     expect(isArrowMinigameComplete(state)).toBe(true);
     state = clearArrowMinigame(state);
     expect(state.arrowMinigame).toBeNull();
@@ -159,7 +189,7 @@ describe("story simulation", () => {
 
     let state: GameState = {
       ...createInitialState(),
-      phase: "regret",
+      phase: "replay",
       currentRoom: "replay",
       storyFlags: {
         sawReplayFriend: true,

@@ -1,4 +1,4 @@
-export type StoryPhase = "buildUp" | "actions" | "regret" | "ending";
+export type StoryPhase = "buildUp" | "actions" | "replay" | "ending";
 
 export type RoomId = "bedroom" | "street" | "replay";
 
@@ -19,7 +19,6 @@ export interface GameState {
   phase: StoryPhase;
   currentRoom: RoomId;
   storyFlags: Record<string, boolean>;
-  regretScore: number;
   completedInteractions: string[];
   arrowMinigame: ArrowMinigameState | null;
 }
@@ -28,7 +27,6 @@ export interface Choice {
   label: string;
   next?: string;
   setFlags?: string[];
-  regretDelta?: number;
 }
 
 export interface DialogueNode {
