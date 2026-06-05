@@ -26,7 +26,7 @@ export class MenuScene extends Phaser.Scene {
       this.overlay?.destroy();
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
         let nextScene = "EpilogueScene";
-        if (import.meta.env.DEV) nextScene = "GameplayScene";
+        // if (import.meta.env.DEV) nextScene = "GameplayScene";
         this.scene.start(nextScene);
       });
       this.cameras.main.fadeOut(MenuScene.startFadeMs, 0, 0, 0);
