@@ -5,9 +5,9 @@ export function createInitialState(): GameState {
     phase: "buildUp",
     currentRoom: "bedroom",
     storyFlags: {},
-    regretScore: 0,
     completedInteractions: [],
     arrowMinigame: null,
+    money: 0,
   };
 }
 
@@ -16,7 +16,6 @@ export function cloneState(state: GameState): GameState {
     phase: state.phase,
     currentRoom: state.currentRoom,
     storyFlags: { ...state.storyFlags },
-    regretScore: state.regretScore,
     completedInteractions: [...state.completedInteractions],
     arrowMinigame: state.arrowMinigame
       ? {
@@ -24,5 +23,6 @@ export function cloneState(state: GameState): GameState {
           sequence: [...state.arrowMinigame.sequence],
         }
       : null,
+    money: state.money,
   };
 }

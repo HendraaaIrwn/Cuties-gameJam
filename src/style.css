@@ -43,6 +43,30 @@ button {
   pointer-events: none;
 }
 
+.epilogue-video-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #000;
+  opacity: 0;
+  transition: opacity 1200ms cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+.epilogue-video-layer.is-visible {
+  opacity: 1;
+}
+
+.epilogue-video-layer video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #000;
+  object-fit: contain;
+}
+
 .hidden {
   display: none !important;
 }
@@ -129,8 +153,44 @@ h1 {
   font-size: 13px;
 }
 
-.regret {
-  color: #f7a889;
+.hud-money {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-color: rgba(255, 224, 92, 0.92);
+  background: rgba(31, 24, 13, 0.82);
+  color: #ffd84d;
+  text-shadow: 0 2px 0 rgba(75, 48, 7, 0.86);
+}
+
+.coin-icon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background: #f2b72f;
+  box-shadow:
+    0 0 0 2px #6d470e,
+    inset 3px 0 0 #ffe26a,
+    inset -3px 0 0 #b87917,
+    0 3px 0 rgba(0, 0, 0, 0.36);
+  image-rendering: pixelated;
+}
+
+.coin-icon::after {
+  position: absolute;
+  left: 6px;
+  top: 3px;
+  width: 4px;
+  height: 10px;
+  background: #fff1a3;
+  box-shadow: 0 0 0 1px rgba(109, 71, 14, 0.28);
+  content: "";
+}
+
+.money-label {
+  color: #ffd84d;
+  font-weight: 900;
 }
 
 .interaction-prompt {
@@ -151,6 +211,67 @@ h1 {
   bottom: 0;
   padding: 18px;
   pointer-events: auto;
+}
+
+.tutorial-guidance-layer {
+  position: absolute;
+  left: 50%;
+  top: 78px;
+  width: min(430px, calc(100vw - 28px));
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.tutorial-guidance {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  padding: 14px 16px 16px;
+  border: 3px solid rgba(255, 246, 207, 0.86);
+  background: rgba(15, 17, 25, 0.88);
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.54),
+    inset 0 0 0 2px rgba(240, 195, 107, 0.22);
+  color: #fff6cf;
+  text-align: center;
+}
+
+.tutorial-guidance p {
+  margin: 0;
+  color: #f4f0d2;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.tutorial-guidance-plain {
+  padding-top: 16px;
+}
+
+.tutorial-arrows {
+  display: flex;
+  gap: 9px;
+  color: #ffffff;
+  font-family: "Arial Black", Impact, monospace;
+  font-size: 25px;
+  line-height: 1;
+  text-shadow:
+    -2px -2px 0 #151923,
+    2px -2px 0 #151923,
+    -2px 2px 0 #151923,
+    2px 2px 0 #151923,
+    0 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-start-button {
+  min-width: 86px;
+  border: 0;
+  padding: 9px 14px;
+  color: #191a22;
+  background: #f0c36b;
+  box-shadow: 0 4px 0 #8c5931;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .arrow-minigame-layer {
@@ -272,7 +393,7 @@ h1 {
 
 .dialogue-box {
   display: grid;
-  grid-template-columns: 84px 1fr;
+  grid-template-columns: 123px 1fr;
   gap: 14px;
   width: min(920px, 100%);
   min-height: 128px;
@@ -284,16 +405,14 @@ h1 {
 }
 
 .portrait {
-  width: 78px;
-  height: 78px;
-  border: 3px solid #364151;
-  background: #607483;
+  width: 117px;
+  height: 117px;
+  background: transparent;
   image-rendering: pixelated;
-  box-shadow: inset 0 -16px 0 rgba(0, 0, 0, 0.18);
 }
 
 .portrait.player {
-  background: linear-gradient(#aeb7a0 0 38%, #354f65 38% 70%, #252a35 70%);
+  background: url("/assets/ui/player-dialogue.png") center bottom / auto 105px no-repeat;
 }
 
 .portrait.friend {
@@ -322,6 +441,20 @@ h1 {
   color: #eef0d8;
   font-size: clamp(15px, 2vw, 18px);
   line-height: 1.55;
+}
+
+.dialogue-content p.typewriter-active::after {
+  display: inline-block;
+  width: 0.58em;
+  color: #f0c36b;
+  content: "▌";
+  animation: typewriter-caret 0.72s steps(1) infinite;
+}
+
+@keyframes typewriter-caret {
+  50% {
+    opacity: 0;
+  }
 }
 
 .dialogue-actions {
@@ -422,13 +555,17 @@ h1 {
   }
 
   .dialogue-box {
-    grid-template-columns: 58px 1fr;
+    grid-template-columns: 87px 1fr;
     gap: 10px;
     padding: 10px;
   }
 
   .portrait {
-    width: 54px;
-    height: 54px;
+    width: 81px;
+    height: 81px;
+  }
+
+  .portrait.player {
+    background-size: auto 74px;
   }
 }
