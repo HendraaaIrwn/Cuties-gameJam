@@ -63,6 +63,10 @@ export class GameplayScene extends Phaser.Scene {
   private static readonly bedroomLaptopInteractionPose = { x: 620, y: 486, facing: "down" as const };
   private static readonly bedroomLaptopWorkingPose = { x: 620, y: 492, facing: "down" as const };
   private static readonly bedroomLaptopPlayerDepth = 515;
+  private static readonly laptopBlueLightDepth = 517;
+  private static readonly laptopBlueLightPosition = { x: 280, y: 119 };
+  private static readonly laptopBlueLightScale = 4.2;
+  private static readonly laptopBlueLightAlpha = 0.58;
   private static readonly bedroomDeskOcclusionBounds = { left: 420, right: 820 };
   private static readonly playerStandingScale = 7;
   private static readonly playerSittingScaleY = 7;
@@ -80,6 +84,7 @@ export class GameplayScene extends Phaser.Scene {
   private static readonly prayerTimeBubbleHitBox = { width: 104, height: 112 };
   private static readonly footstepVolume = 0.34;
   private static readonly footstepRate = 1.5;
+  private static readonly phase1BacksoundVolume = 0.1;
   private static readonly postMinigameSilentMs = 1200;
   private static readonly notificationBubbleDelayMs = 900;
   private static readonly foodOrderArrivalDelayMs = 900;
@@ -91,7 +96,7 @@ export class GameplayScene extends Phaser.Scene {
   private static readonly zulfanReplyMonologueBubbleWidth = 270;
   private static readonly dayNightCycleMs = 30_000;
   private static readonly dayNightFadeMs = 1200;
-  private static readonly nightOverlayAlpha = 0.32;
+  private static readonly nightOverlayAlpha = 0.82;
   private static readonly epilogueFadeInMs = 1200;
   private static readonly zulfanReplyMonologueLines = [
     "Royyan already becoming a director.",
@@ -105,6 +110,8 @@ export class GameplayScene extends Phaser.Scene {
   private overlay?: NarrativeOverlay;
   private roomGraphics?: Phaser.GameObjects.Graphics;
   private player?: Phaser.GameObjects.Sprite;
+  private laptopBlueLight?: Phaser.GameObjects.Image;
+  private laptopBlueLightEnabled = false;
   private parentMailBubble?: Phaser.GameObjects.Container;
   private zulfanMailBubble?: Phaser.GameObjects.Container;
   private prayerTimeBubble?: Phaser.GameObjects.Container;
@@ -119,6 +126,7 @@ export class GameplayScene extends Phaser.Scene {
   private silentPauseActive = false;
   private playerFacing: PlayerFacing = "up";
   private footstepSound?: Phaser.Sound.BaseSound;
+  private phase1Backsound?: Phaser.Sound.BaseSound;
   private monologueBubble?: SpeechBubbleContainer;
   private enterKey?: Phaser.Input.Keyboard.Key;
   private monologueDismissReady = false;
@@ -151,6 +159,8 @@ export class GameplayScene extends Phaser.Scene {
     this.load.audio("sfx.prayer.adzan", assetManifest.audio["sfx.prayer.adzan"]);
     this.load.audio("sfx.environment.cricket", assetManifest.audio["sfx.environment.cricket"]);
     this.load.audio("sfx.environment.chicken", assetManifest.audio["sfx.environment.chicken"]);
+    this.load.audio("bgm.phase1", assetManifest.audio["bgm.phase1"]);
+    this.load.image("room.bedroom.laptopBlueLight", assetManifest.rooms["room.bedroom.laptopBlueLight"]);
     this.load.image("ui.mail", assetManifest.ui["ui.mail"]);
     this.load.image("ui.mosque", assetManifest.ui["ui.mosque"]);
   }
@@ -165,6 +175,10 @@ export class GameplayScene extends Phaser.Scene {
       loop: true,
       rate: GameplayScene.footstepRate,
       volume: GameplayScene.footstepVolume,
+    });
+    this.phase1Backsound = this.sound.add("bgm.phase1", {
+      loop: true,
+      volume: GameplayScene.phase1BacksoundVolume,
     });
 
     this.cursors = this.input.keyboard?.createCursorKeys();
@@ -246,6 +260,7 @@ export class GameplayScene extends Phaser.Scene {
     this.destroyZulfanMailBubble();
     this.destroyPrayerTimeBubble();
     this.destroyMonologueBubble();
+    this.destroyLaptopBlueLight();
     this.highlightedId = null;
 
     drawRoom(this, this.roomGraphics, room.id);
@@ -298,6 +313,7 @@ export class GameplayScene extends Phaser.Scene {
   private toggleDayNight(): void {
     this.isNight = !this.isNight;
     this.advanceBedroomClockFrame();
+    this.updateLaptopBlueLightVisibility();
     const overlay = this.ensureNightOverlay();
     if (!overlay) {
       if (this.isNight) {
@@ -836,6 +852,7 @@ export class GameplayScene extends Phaser.Scene {
     if (isWorking) {
       this.setPlayerLaptopWorkPose();
     } else {
+      this.setPlayerStandingScale();
       setPlayerIdle(this.player, this.playerFacing);
     }
     this.setPlayerLaptopDepth();
@@ -857,14 +874,56 @@ export class GameplayScene extends Phaser.Scene {
     );
     playPlayerWalk(this.player, this.playerFacing);
     this.setPlayerLaptopDepth();
+    this.showLaptopBlueLight();
   }
 
   private setPlayerStandingScale(): void {
     this.player?.setScale(GameplayScene.playerStandingScale);
+    this.hideLaptopBlueLight();
   }
 
   private setPlayerLaptopDepth(): void {
     this.player?.setDepth(GameplayScene.bedroomLaptopPlayerDepth);
+  }
+
+  private showLaptopBlueLight(): void {
+    if (!this.isBedroom()) {
+      return;
+    }
+
+    this.laptopBlueLightEnabled = true;
+
+    if (!this.laptopBlueLight) {
+      this.laptopBlueLight = this.add
+        .image(
+          GameplayScene.laptopBlueLightPosition.x,
+          GameplayScene.laptopBlueLightPosition.y,
+          "room.bedroom.laptopBlueLight",
+        )
+        .setOrigin(0, 0)
+        .setScale(GameplayScene.laptopBlueLightScale)
+        .setAlpha(GameplayScene.laptopBlueLightAlpha)
+        .setDepth(GameplayScene.laptopBlueLightDepth);
+    }
+
+    this.updateLaptopBlueLightVisibility();
+  }
+
+  private hideLaptopBlueLight(): void {
+    this.laptopBlueLightEnabled = false;
+    this.updateLaptopBlueLightVisibility();
+  }
+
+  private updateLaptopBlueLightVisibility(): void {
+    this.laptopBlueLight?.setVisible(
+      this.laptopBlueLightEnabled && this.isNight && this.isBedroom(),
+    );
+  }
+
+  private destroyLaptopBlueLight(): void {
+    this.laptopBlueLight?.destroy();
+    this.laptopBlueLight = undefined;
+    this.laptopBlueLightEnabled = false;
   }
 
   private startDeskWork(interactable: Interactable): void {
@@ -938,6 +997,7 @@ export class GameplayScene extends Phaser.Scene {
     }
 
     this.overlay?.hideArrowMinigame();
+    this.hideLaptopBlueLight();
     this.state = clearArrowMinigame(this.state);
     let shouldShowFirstWorkRewardGuidance = false;
     let rewardDialogueId: string | null = null;
@@ -1118,6 +1178,7 @@ export class GameplayScene extends Phaser.Scene {
     this.silentPauseActive = true;
     this.overlay?.setPrompt(null);
     this.stopFootsteps();
+    this.stopPhase1Backsound();
 
     if (this.player) {
       setPlayerIdle(this.player, this.playerFacing);
@@ -1810,6 +1871,7 @@ export class GameplayScene extends Phaser.Scene {
       },
       onComplete: () => {
         this.state = this.withStoryFlags(["foodDoorReflectionSeen"]);
+        this.startPhase1Backsound();
         this.dialogueActive = false;
         this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
         this.updateInteractionFocus();
@@ -1861,6 +1923,22 @@ export class GameplayScene extends Phaser.Scene {
 
   private playChickenSound(): void {
     this.sound.play("sfx.environment.chicken", { volume: 0.78 });
+  }
+
+  private startPhase1Backsound(): void {
+    if (!this.phase1Backsound || this.phase1Backsound.isPlaying) {
+      return;
+    }
+
+    this.phase1Backsound.play();
+  }
+
+  private stopPhase1Backsound(): void {
+    if (!this.phase1Backsound?.isPlaying) {
+      return;
+    }
+
+    this.phase1Backsound.stop();
   }
 
   private playDoorRustleSound(onComplete: () => void): void {

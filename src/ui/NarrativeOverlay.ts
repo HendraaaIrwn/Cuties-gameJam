@@ -53,8 +53,8 @@ export class NarrativeOverlay {
       <section class="title-screen">
         <div class="title-copy">
           <p class="eyebrow">Walking Sim / Visual Novel</p>
-          <h1>Chained by Other People's Shadows</h1>
-          <p class="tagline">Toxic productivity, fear of falling behind, and a life that only feels meaningful once it becomes a recording.</p>
+          <h1>ALMOST THERE</h1>
+          <p class="tagline">Beta Version</p>
           <button class="primary-action" type="button">Start</button>
         </div>
       </section>

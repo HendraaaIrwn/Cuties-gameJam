@@ -1,9 +1,16 @@
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("/assets/fonts/PixelifySans-VariableFont_wght.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
   color: #eef0d8;
   background: #10131b;
   font-family:
-    "Trebuchet MS",
-    "Segoe UI",
+    "Pixelify Sans",
     system-ui,
     sans-serif;
   font-synthesis: none;
@@ -252,7 +259,7 @@ h1 {
   display: flex;
   gap: 9px;
   color: #ffffff;
-  font-family: "Arial Black", Impact, monospace;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
   font-size: 25px;
   line-height: 1;
   text-shadow:
@@ -297,7 +304,7 @@ h1 {
   grid-row: 1;
   align-self: end;
   color: #ffffff;
-  font-family: "Arial Black", Impact, monospace;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
   font-size: 44px;
   line-height: 1;
   text-align: center;
@@ -324,7 +331,7 @@ h1 {
   width: 42px;
   height: 46px;
   color: #ffffff;
-  font-family: "Arial Black", Impact, monospace;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
   font-size: 50px;
   font-weight: 900;
   line-height: 42px;
@@ -384,7 +391,7 @@ h1 {
   gap: 14px;
   margin-top: 2px;
   color: rgba(255, 255, 255, 0.82);
-  font-family: monospace;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
   font-size: 11px;
   letter-spacing: 0;
   text-transform: uppercase;
