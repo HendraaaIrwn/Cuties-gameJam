@@ -29,6 +29,7 @@ export const assetManifest: AssetManifest = {
     "room.bedroom.clock": "/assets/environment/bedroom/clock.png",
     "room.bedroom.desk": "/assets/environment/bedroom/desk.png",
     "room.bedroom.door": "/assets/environment/bedroom/door.png",
+    "room.bedroom.nightOverlay": "/assets/environment/bedroom/BG_Nighttime_Multiply.png",
     "room.bedroom.preview": "/assets/environment/bedroom/preview.png",
     "room.bedroom.wardrobe": "/assets/environment/bedroom/wardrobe.png",
     "room.street": "procedural/street",
@@ -38,6 +39,7 @@ export const assetManifest: AssetManifest = {
     "ui.textbox": "dom/textbox",
     "ui.interact": "procedural/interact",
     "ui.mail": "/assets/ui/mail.png",
+    "ui.mosque": "/assets/ui/kubah.png",
   },
   audio: {
     "sfx.player.footstep": "/assets/audio/footstep.wav",
@@ -46,5 +48,9 @@ export const assetManifest: AssetManifest = {
     "sfx.door.rustle": "/assets/audio/door-rustle.wav",
     "sfx.keyboard.tap": "/assets/audio/spacebar.mp3",
     "sfx.money.earn": "/assets/audio/earn-money.mp3",
+    "sfx.bubble.popup": "/assets/audio/pop-up-bubble-icon.mp3",
+    "sfx.prayer.adzan": "/assets/audio/sound-adzan.wav",
+    "sfx.environment.cricket": "/assets/audio/cricket.mp3",
+    "sfx.environment.chicken": "/assets/audio/chicken.mp3",
   },
 };

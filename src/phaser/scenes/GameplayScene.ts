@@ -18,8 +18,18 @@ import {
 } from "../../game/simulation/rules";
 import type { ArrowDirection, GameState, Interactable } from "../../game/simulation/types";
 import { NarrativeOverlay } from "../../ui/NarrativeOverlay";
+import {
+  createIconNotificationBubble,
+  setIconNotificationBubbleHighlighted,
+} from "../view/iconNotificationBubble";
 import { createMailBubble, setMailBubbleHighlighted } from "../view/mailBubble";
 import {
+  createSpeechBubble,
+  type SpeechBubbleContainer,
+} from "../view/speechBubble";
+import {
+  bedroomPlayerDepth,
+  createBedroomNightOverlay,
   createPlayerAnimations,
   createInteractableView,
   createPlayer,
@@ -39,22 +49,55 @@ export class GameplayScene extends Phaser.Scene {
   private static readonly vacanciesDialogueMoneyThreshold = 50;
   private static readonly applications125DialogueMoneyThreshold = 125;
   private static readonly foodOrderMoneyThreshold = 75;
-  private static readonly keepPushingDialogueMoneyThreshold = 150;
+  private static readonly keepPushingDialogueMoneyThreshold = 275;
   private static readonly parentMessageMoneyThreshold = 150;
+  private static readonly newProjectDialogueMoneyThreshold = 200;
+  private static readonly hasToWorkDialogueMoneyThreshold = 350;
+  private static readonly prayerTimeMoneyThreshold = 400;
+  private static readonly blackFadeDialogueMoneyThreshold = 475;
   private static readonly bedroomFloorY = 486;
   private static readonly bedroomWardrobeCollider = { left: 135, right: 160 };
   private static readonly bedroomDoorInteractionPose = { x: 200, y: 486, facing: "up" as const };
   private static readonly bedroomWardrobeInteractionPose = { x: 170, y: 486, facing: "left" as const };
-  private static readonly bedroomLaptopInteractionPose = { x: 600, y: 486, facing: "up" as const };
+  private static readonly bedroomLaptopInteractionPose = { x: 620, y: 486, facing: "down" as const };
+  private static readonly bedroomLaptopWorkingPose = { x: 620, y: 492, facing: "down" as const };
+  private static readonly bedroomLaptopPlayerDepth = 515;
+  private static readonly bedroomDeskOcclusionBounds = { left: 420, right: 820 };
+  private static readonly playerStandingScale = 7;
+  private static readonly playerSittingScaleY = 7;
   private static readonly parentMailInteractableId = "parent-mail";
   private static readonly parentMailBubblePose = { x: 742, y: 306 };
-  private static readonly parentMailInteractionPose = { x: 696, y: 486, facing: "up" as const };
+  private static readonly parentMailInteractionPose = { x: 696, y: 486, facing: "down" as const };
   private static readonly parentMailBubbleHitBox = { width: 104, height: 112 };
+  private static readonly zulfanMailInteractableId = "zulfan-mail";
+  private static readonly zulfanMailBubblePose = { x: 742, y: 306 };
+  private static readonly zulfanMailInteractionPose = { x: 696, y: 486, facing: "down" as const };
+  private static readonly zulfanMailBubbleHitBox = { width: 104, height: 112 };
+  private static readonly prayerTimeInteractableId = "prayer-time";
+  private static readonly prayerTimeBubblePose = { x: 742, y: 306 };
+  private static readonly prayerTimeInteractionPose = { x: 696, y: 486, facing: "down" as const };
+  private static readonly prayerTimeBubbleHitBox = { width: 104, height: 112 };
   private static readonly footstepVolume = 0.34;
   private static readonly footstepRate = 1.5;
   private static readonly postMinigameSilentMs = 1200;
+  private static readonly notificationBubbleDelayMs = 900;
   private static readonly foodOrderArrivalDelayMs = 900;
   private static readonly doorKnockDelayMs = 900;
+  private static readonly monologueBubbleOffsetY = 280;
+  private static readonly monologueBubbleDelayMs = 1000;
+  private static readonly blackFadeDialogueMs = 1200;
+  private static readonly blackFadeDialogueDelayMs = 700;
+  private static readonly zulfanReplyMonologueBubbleWidth = 270;
+  private static readonly dayNightCycleMs = 30_000;
+  private static readonly dayNightFadeMs = 1200;
+  private static readonly nightOverlayAlpha = 0.32;
+  private static readonly epilogueFadeInMs = 1200;
+  private static readonly zulfanReplyMonologueLines = [
+    "Royyan already becoming a director.",
+    "Irfan's doing great too.",
+    "...",
+    "I need to catch up first.",
+  ];
   private static readonly foodOrderDialogueDelayMs = 1550;
   private static readonly doorFadeMs = 1800;
   private state: GameState = createInitialState();
@@ -62,6 +105,8 @@ export class GameplayScene extends Phaser.Scene {
   private roomGraphics?: Phaser.GameObjects.Graphics;
   private player?: Phaser.GameObjects.Sprite;
   private parentMailBubble?: Phaser.GameObjects.Container;
+  private zulfanMailBubble?: Phaser.GameObjects.Container;
+  private prayerTimeBubble?: Phaser.GameObjects.Container;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys?: Record<string, Phaser.Input.Keyboard.Key>;
   private interactableViews = new Map<string, Phaser.GameObjects.Container>();
@@ -73,9 +118,22 @@ export class GameplayScene extends Phaser.Scene {
   private silentPauseActive = false;
   private playerFacing: PlayerFacing = "up";
   private footstepSound?: Phaser.Sound.BaseSound;
+  private monologueBubble?: SpeechBubbleContainer;
+  private enterKey?: Phaser.Input.Keyboard.Key;
+  private monologueDismissReady = false;
+  private monologueQueue: string[] = [];
+  private monologueQueueIndex = 0;
+  private nightOverlay?: Phaser.GameObjects.Image;
+  private dayNightTimer?: Phaser.Time.TimerEvent;
+  private isNight = false;
+  private shouldFadeInFromEpilogue = false;
 
   constructor() {
     super("GameplayScene");
+  }
+
+  init(data: { fadeInFromEpilogue?: boolean } = {}): void {
+    this.shouldFadeInFromEpilogue = data.fadeInFromEpilogue === true;
   }
 
   preload(): void {
@@ -87,7 +145,12 @@ export class GameplayScene extends Phaser.Scene {
     this.load.audio("sfx.door.rustle", assetManifest.audio["sfx.door.rustle"]);
     this.load.audio("sfx.keyboard.tap", assetManifest.audio["sfx.keyboard.tap"]);
     this.load.audio("sfx.money.earn", assetManifest.audio["sfx.money.earn"]);
+    this.load.audio("sfx.bubble.popup", assetManifest.audio["sfx.bubble.popup"]);
+    this.load.audio("sfx.prayer.adzan", assetManifest.audio["sfx.prayer.adzan"]);
+    this.load.audio("sfx.environment.cricket", assetManifest.audio["sfx.environment.cricket"]);
+    this.load.audio("sfx.environment.chicken", assetManifest.audio["sfx.environment.chicken"]);
     this.load.image("ui.mail", assetManifest.ui["ui.mail"]);
+    this.load.image("ui.mosque", assetManifest.ui["ui.mosque"]);
   }
 
   create(): void {
@@ -107,18 +170,29 @@ export class GameplayScene extends Phaser.Scene {
       string,
       Phaser.Input.Keyboard.Key
     >;
+    this.enterKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
     this.roomGraphics = this.add.graphics();
     this.renderRoom();
+    this.startDayNightCycle();
     this.bindInput();
-    this.setPlayerAtBedroomLaptop();
-    this.startFreeDialogue("opening", () => this.showOpeningArrowTutorial());
+    this.setPlayerAtBedroomLaptop(true);
+    this.startOpeningSequence();
   }
 
   update(_: number, delta: number): void {
     if (this.dialogueActive || this.silentPauseActive || this.state.phase === "ending") {
       this.stopFootsteps();
       return;
+    }
+
+    if (
+      this.monologueBubble &&
+      this.enterKey &&
+      this.monologueDismissReady &&
+      Phaser.Input.Keyboard.JustDown(this.enterKey)
+    ) {
+      this.advanceMonologueBubble();
     }
 
     if (this.state.arrowMinigame) {
@@ -128,6 +202,7 @@ export class GameplayScene extends Phaser.Scene {
     }
 
     this.updateMovement(delta / 1000);
+    this.updateMonologueBubblePosition();
     this.updateInteractionFocus();
   }
 
@@ -148,7 +223,7 @@ export class GameplayScene extends Phaser.Scene {
         return;
       }
 
-      if (this.isParentMessagePending()) {
+      if (this.isMessagePending()) {
         return;
       }
 
@@ -166,9 +241,13 @@ export class GameplayScene extends Phaser.Scene {
     this.interactableViews.forEach((view) => view.destroy(true));
     this.interactableViews.clear();
     this.destroyParentMailBubble();
+    this.destroyZulfanMailBubble();
+    this.destroyPrayerTimeBubble();
+    this.destroyMonologueBubble();
     this.highlightedId = null;
 
     drawRoom(this, this.roomGraphics, room.id);
+    this.refreshNightOverlay();
 
     if (!this.player) {
       this.player = createPlayer(this);
@@ -181,10 +260,98 @@ export class GameplayScene extends Phaser.Scene {
       this.interactableViews.set(interactable.id, view);
     }
     this.refreshParentMailBubble();
+    this.refreshZulfanMailBubble();
+    this.refreshPrayerTimeBubble();
 
     this.overlay?.updateHud(this.state, room.title);
     this.overlay?.setPrompt(null);
     this.overlay?.hideArrowMinigame();
+  }
+
+  private startDayNightCycle(): void {
+    this.dayNightTimer?.remove(false);
+    this.dayNightTimer = this.time.addEvent({
+      delay: GameplayScene.dayNightCycleMs,
+      loop: true,
+      callback: () => this.toggleDayNight(),
+    });
+  }
+
+  private startOpeningSequence(): void {
+    if (!this.shouldFadeInFromEpilogue) {
+      this.startFreeDialogue("opening", () => this.showOpeningArrowTutorial());
+      return;
+    }
+
+    this.silentPauseActive = true;
+    this.overlay?.setPrompt(null);
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () => {
+      this.silentPauseActive = false;
+      this.startFreeDialogue("opening", () => this.showOpeningArrowTutorial());
+    });
+    this.cameras.main.fadeIn(GameplayScene.epilogueFadeInMs, 0, 0, 0);
+  }
+
+  private toggleDayNight(): void {
+    this.isNight = !this.isNight;
+    const overlay = this.ensureNightOverlay();
+    if (!overlay) {
+      if (this.isNight) {
+        this.playCricketSound();
+      } else {
+        this.playChickenSound();
+      }
+      return;
+    }
+
+    this.tweens.killTweensOf(overlay);
+    this.tweens.add({
+      targets: overlay,
+      alpha: this.isNight ? GameplayScene.nightOverlayAlpha : 0,
+      duration: GameplayScene.dayNightFadeMs,
+      ease: "Sine.easeInOut",
+    });
+
+    if (this.isNight) {
+      this.playCricketSound();
+    } else {
+      this.playChickenSound();
+    }
+  }
+
+  private refreshNightOverlay(): void {
+    this.destroyNightOverlay();
+    if (!this.isBedroom()) {
+      return;
+    }
+
+    this.nightOverlay = createBedroomNightOverlay(
+      this,
+      this.isNight ? GameplayScene.nightOverlayAlpha : 0,
+    );
+  }
+
+  private ensureNightOverlay(): Phaser.GameObjects.Image | undefined {
+    if (!this.isBedroom()) {
+      this.destroyNightOverlay();
+      return undefined;
+    }
+
+    if (!this.nightOverlay?.active) {
+      this.nightOverlay = createBedroomNightOverlay(this, this.isNight ? GameplayScene.nightOverlayAlpha : 0);
+    }
+
+    return this.nightOverlay;
+  }
+
+  private destroyNightOverlay(): void {
+    if (!this.nightOverlay) {
+      return;
+    }
+
+    this.tweens.killTweensOf(this.nightOverlay);
+    this.nightOverlay.destroy();
+    this.nightOverlay = undefined;
   }
 
   private refreshInteractables(): void {
@@ -204,6 +371,8 @@ export class GameplayScene extends Phaser.Scene {
       this.interactableViews.set(interactable.id, view);
     }
     this.refreshParentMailBubble();
+    this.refreshZulfanMailBubble();
+    this.refreshPrayerTimeBubble();
 
     this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
   }
@@ -234,6 +403,7 @@ export class GameplayScene extends Phaser.Scene {
     if (direction.lengthSq() > 0) {
       this.moveTarget = null;
       this.pendingInteractableId = null;
+      this.setPlayerStandingScale();
       this.setPlayerWalkFromDirection(direction);
       direction.normalize().scale(speed * seconds);
       const previousX = this.player.x;
@@ -252,11 +422,13 @@ export class GameplayScene extends Phaser.Scene {
       if (distance <= step) {
         this.player.setPosition(this.moveTarget.x, this.moveTarget.y);
         this.moveTarget = null;
+        this.setPlayerStandingScale();
         setPlayerIdle(this.player, this.playerFacing);
         this.stopFootsteps();
         this.tryInteract(this.pendingInteractableId);
         this.pendingInteractableId = null;
       } else {
+        this.setPlayerStandingScale();
         this.setPlayerWalkFromDirection(toTarget);
         toTarget.normalize().scale(step);
         const previousX = this.player.x;
@@ -282,7 +454,7 @@ export class GameplayScene extends Phaser.Scene {
     this.player.y = this.isBedroom()
       ? GameplayScene.bedroomFloorY
       : Phaser.Math.Clamp(this.player.y, 276, 440);
-    this.player.setDepth(this.player.y + 8);
+    this.setPlayerDepth();
   }
 
   private setPlayerWalkFromDirection(direction: Phaser.Math.Vector2): void {
@@ -308,6 +480,32 @@ export class GameplayScene extends Phaser.Scene {
   ): void {
     const moved = !!this.player && (this.player.x !== previousX || this.player.y !== previousY);
     this.setFootstepsPlaying(moved || keepPlayingWhenBlocked);
+  }
+
+  private setPlayerDepth(): void {
+    if (!this.player) {
+      return;
+    }
+
+    if (!this.isBedroom()) {
+      this.player.setDepth(this.player.y + 8);
+      return;
+    }
+
+    this.player.setDepth(
+      this.isPlayerBehindBedroomDesk()
+        ? GameplayScene.bedroomLaptopPlayerDepth
+        : bedroomPlayerDepth,
+    );
+  }
+
+  private isPlayerBehindBedroomDesk(): boolean {
+    if (!this.player) {
+      return false;
+    }
+
+    const { left, right } = GameplayScene.bedroomDeskOcclusionBounds;
+    return this.player.x >= left && this.player.x <= right;
   }
 
   private stopFootsteps(): void {
@@ -355,6 +553,20 @@ export class GameplayScene extends Phaser.Scene {
       return;
     }
 
+    if (interactableId === GameplayScene.zulfanMailInteractableId) {
+      if (this.zulfanMailBubble) {
+        setMailBubbleHighlighted(this.zulfanMailBubble, highlighted);
+      }
+      return;
+    }
+
+    if (interactableId === GameplayScene.prayerTimeInteractableId) {
+      if (this.prayerTimeBubble) {
+        setIconNotificationBubbleHighlighted(this.prayerTimeBubble, highlighted);
+      }
+      return;
+    }
+
     const view = this.interactableViews.get(interactableId);
     if (view) {
       setInteractableHighlighted(view, highlighted);
@@ -395,7 +607,31 @@ export class GameplayScene extends Phaser.Scene {
           return false;
         }
         if (interactable.id === GameplayScene.parentMailInteractableId) {
-          return this.isPointOnParentMailBubble(x, y);
+          return this.isPointOnMailBubble(
+            x,
+            y,
+            GameplayScene.parentMailBubblePose,
+            GameplayScene.parentMailBubbleHitBox,
+            GameplayScene.parentMailInteractionPose,
+          );
+        }
+        if (interactable.id === GameplayScene.zulfanMailInteractableId) {
+          return this.isPointOnMailBubble(
+            x,
+            y,
+            GameplayScene.zulfanMailBubblePose,
+            GameplayScene.zulfanMailBubbleHitBox,
+            GameplayScene.zulfanMailInteractionPose,
+          );
+        }
+        if (interactable.id === GameplayScene.prayerTimeInteractableId) {
+          return this.isPointOnMailBubble(
+            x,
+            y,
+            GameplayScene.prayerTimeBubblePose,
+            GameplayScene.prayerTimeBubbleHitBox,
+            GameplayScene.prayerTimeInteractionPose,
+          );
         }
         return Phaser.Math.Distance.Between(x, y, interactable.x, interactable.y) <= interactable.radius;
       }) ?? null
@@ -457,6 +693,18 @@ export class GameplayScene extends Phaser.Scene {
       return;
     }
 
+    if (interactable.id === GameplayScene.zulfanMailInteractableId) {
+      this.alignPlayerForInteraction(interactable);
+      this.startZulfanMessageDialogue();
+      return;
+    }
+
+    if (interactable.id === GameplayScene.prayerTimeInteractableId) {
+      this.alignPlayerForInteraction(interactable);
+      this.startPrayerTimeDialogue();
+      return;
+    }
+
     if (this.shouldPlayFoodDoorSequence(interactable)) {
       this.startFoodDoorSequence(interactable);
       return;
@@ -506,8 +754,9 @@ export class GameplayScene extends Phaser.Scene {
       this.moveTarget = null;
       this.pendingInteractableId = null;
       this.playerFacing = "down";
+      this.setPlayerStandingScale();
       setPlayerIdle(this.player, this.playerFacing);
-      this.player.setDepth(this.player.y + 8);
+      this.setPlayerDepth();
       this.stopFootsteps();
       return;
     }
@@ -520,8 +769,9 @@ export class GameplayScene extends Phaser.Scene {
         GameplayScene.bedroomWardrobeInteractionPose.x,
         GameplayScene.bedroomWardrobeInteractionPose.y,
       );
+      this.setPlayerStandingScale();
       setPlayerMirrorIdle(this.player);
-      this.player.setDepth(this.player.y + 8);
+      this.setPlayerDepth();
       this.stopFootsteps();
       return;
     }
@@ -542,23 +792,62 @@ export class GameplayScene extends Phaser.Scene {
     this.pendingInteractableId = null;
     this.playerFacing = pose.facing;
     this.player.setPosition(pose.x, pose.y);
+    this.setPlayerStandingScale();
     setPlayerIdle(this.player, this.playerFacing);
-    this.player.setDepth(this.player.y + 8);
+    if (interactable.id === "laptop") {
+      this.setPlayerLaptopDepth();
+    } else {
+      this.setPlayerDepth();
+    }
     this.stopFootsteps();
   }
 
-  private setPlayerAtBedroomLaptop(): void {
+  private setPlayerAtBedroomLaptop(isWorking = false): void {
     if (!this.player || !this.isBedroom()) {
       return;
     }
 
-    this.playerFacing = GameplayScene.bedroomLaptopInteractionPose.facing;
+    const pose = isWorking
+      ? GameplayScene.bedroomLaptopWorkingPose
+      : GameplayScene.bedroomLaptopInteractionPose;
+
+    this.playerFacing = pose.facing;
     this.player.setPosition(
-      GameplayScene.bedroomLaptopInteractionPose.x,
-      GameplayScene.bedroomLaptopInteractionPose.y,
+      pose.x,
+      pose.y,
     );
-    setPlayerIdle(this.player, this.playerFacing);
-    this.player.setDepth(this.player.y + 8);
+    if (isWorking) {
+      this.setPlayerLaptopWorkPose();
+    } else {
+      setPlayerIdle(this.player, this.playerFacing);
+    }
+    this.setPlayerLaptopDepth();
+  }
+
+  private setPlayerLaptopWorkPose(): void {
+    if (!this.player) {
+      return;
+    }
+
+    this.playerFacing = GameplayScene.bedroomLaptopWorkingPose.facing;
+    this.player.setPosition(
+      GameplayScene.bedroomLaptopWorkingPose.x,
+      GameplayScene.bedroomLaptopWorkingPose.y,
+    );
+    this.player.setScale(
+      GameplayScene.playerStandingScale,
+      GameplayScene.playerSittingScaleY,
+    );
+    playPlayerWalk(this.player, this.playerFacing);
+    this.setPlayerLaptopDepth();
+  }
+
+  private setPlayerStandingScale(): void {
+    this.player?.setScale(GameplayScene.playerStandingScale);
+  }
+
+  private setPlayerLaptopDepth(): void {
+    this.player?.setDepth(GameplayScene.bedroomLaptopPlayerDepth);
   }
 
   private startDeskWork(interactable: Interactable): void {
@@ -572,14 +861,20 @@ export class GameplayScene extends Phaser.Scene {
     if (this.player) {
       if (this.isBedroom()) {
         this.player.setPosition(
-          GameplayScene.bedroomLaptopInteractionPose.x,
-          GameplayScene.bedroomLaptopInteractionPose.y,
+          GameplayScene.bedroomLaptopWorkingPose.x,
+          GameplayScene.bedroomLaptopWorkingPose.y,
         );
+        this.setPlayerLaptopWorkPose();
       } else {
         this.player.setPosition(interactable.x, this.getMoveTargetY(interactable.y + 24));
+        this.setPlayerStandingScale();
+        setPlayerIdle(this.player, this.playerFacing);
       }
-      setPlayerIdle(this.player, this.playerFacing);
-      this.player.setDepth(this.player.y + 8);
+      if (this.isBedroom()) {
+        this.setPlayerLaptopDepth();
+      } else {
+        this.setPlayerDepth();
+      }
     }
 
     this.overlay?.setPrompt(null);
@@ -629,6 +924,8 @@ export class GameplayScene extends Phaser.Scene {
     this.state = clearArrowMinigame(this.state);
     let shouldShowFirstWorkRewardGuidance = false;
     let rewardDialogueId: string | null = null;
+    let shouldScheduleParentMessage = false;
+    let shouldSchedulePrayerTimeEvent = false;
     if (this.shouldEarnMoneyFromWork(deskInteractable)) {
       shouldShowFirstWorkRewardGuidance = this.shouldShowFirstWorkRewardGuidance();
       this.state = earnMoney(this.state);
@@ -641,14 +938,18 @@ export class GameplayScene extends Phaser.Scene {
         this.state = this.withStoryFlags(["vacanciesMoneyDialogueSeen"]);
       } else if (rewardDialogueId === "money-125-applications") {
         this.state = this.withStoryFlags(["applications125MoneyDialogueSeen"]);
-      } else if (rewardDialogueId === "money-150-keep-pushing") {
+      } else if (rewardDialogueId === "money-275-keep-pushing") {
         this.state = this.withStoryFlags(["keepPushingMoneyDialogueSeen"]);
+      } else if (rewardDialogueId === "money-200-new-project") {
+        this.state = this.withStoryFlags(["newProjectMoneyDialogueSeen"]);
+      } else if (rewardDialogueId === "money-350-has-to-work") {
+        this.state = this.withStoryFlags(["hasToWorkMoneyDialogueSeen"]);
+      } else if (rewardDialogueId === "money-475-ugh") {
+        this.state = this.withStoryFlags(["blackFadeMoneyDialogueSeen"]);
       }
-      if (this.shouldUnlockParentMessage()) {
-        this.state = this.withStoryFlags(["parentMessageAvailable"]);
-      }
+      shouldScheduleParentMessage = this.shouldUnlockParentMessage();
+      shouldSchedulePrayerTimeEvent = this.shouldUnlockPrayerTimeEvent();
       this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
-      this.refreshParentMailBubble();
     }
 
     this.activeDeskInteractable = null;
@@ -658,14 +959,22 @@ export class GameplayScene extends Phaser.Scene {
     if (shouldShowFirstWorkRewardGuidance) {
       this.showFirstWorkRewardGuidance(() => {
         this.showEarnMoneyDialogueIfNeeded(rewardDialogueId, () =>
-          this.continueAfterDeskWork(deskInteractable),
+          this.scheduleMoneyNotificationEvents(
+            shouldScheduleParentMessage,
+            shouldSchedulePrayerTimeEvent,
+            () => this.continueAfterDeskWork(deskInteractable),
+          ),
         );
       });
       return;
     }
 
     this.showEarnMoneyDialogueIfNeeded(rewardDialogueId, () =>
-      this.continueAfterDeskWork(deskInteractable),
+      this.scheduleMoneyNotificationEvents(
+        shouldScheduleParentMessage,
+        shouldSchedulePrayerTimeEvent,
+        () => this.continueAfterDeskWork(deskInteractable),
+      ),
     );
   }
 
@@ -699,6 +1008,14 @@ export class GameplayScene extends Phaser.Scene {
     );
   }
 
+  private shouldUnlockPrayerTimeEvent(): boolean {
+    return (
+      this.state.money === GameplayScene.prayerTimeMoneyThreshold &&
+      this.state.storyFlags.prayerTimeAvailable !== true &&
+      this.state.storyFlags.prayerTimeRead !== true
+    );
+  }
+
   private shouldShowFirstWorkRewardGuidance(): boolean {
     return this.state.storyFlags.firstWorkRewardNotificationShown !== true;
   }
@@ -722,7 +1039,28 @@ export class GameplayScene extends Phaser.Scene {
       this.state.money === GameplayScene.keepPushingDialogueMoneyThreshold &&
       this.state.storyFlags.keepPushingMoneyDialogueSeen !== true
     ) {
-      return "money-150-keep-pushing";
+      return "money-275-keep-pushing";
+    }
+
+    if (
+      this.state.money === GameplayScene.newProjectDialogueMoneyThreshold &&
+      this.state.storyFlags.newProjectMoneyDialogueSeen !== true
+    ) {
+      return "money-200-new-project";
+    }
+
+    if (
+      this.state.money === GameplayScene.hasToWorkDialogueMoneyThreshold &&
+      this.state.storyFlags.hasToWorkMoneyDialogueSeen !== true
+    ) {
+      return "money-350-has-to-work";
+    }
+
+    if (
+      this.state.money === GameplayScene.blackFadeDialogueMoneyThreshold &&
+      this.state.storyFlags.blackFadeMoneyDialogueSeen !== true
+    ) {
+      return "money-475-ugh";
     }
 
     return null;
@@ -746,7 +1084,97 @@ export class GameplayScene extends Phaser.Scene {
       return;
     }
 
+    if (dialogueId === "money-275-keep-pushing") {
+      this.startFreeDialogue(dialogueId, () => this.scheduleZulfanMessageEvent(onComplete));
+      return;
+    }
+
+    if (dialogueId === "money-475-ugh") {
+      this.startBlackFadeDialogue(dialogueId, onComplete);
+      return;
+    }
+
     this.startFreeDialogue(dialogueId, onComplete);
+  }
+
+  private startBlackFadeDialogue(dialogueId: string, onComplete: () => void): void {
+    this.silentPauseActive = true;
+    this.overlay?.setPrompt(null);
+    this.stopFootsteps();
+
+    if (this.player) {
+      setPlayerIdle(this.player, this.playerFacing);
+    }
+
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      this.time.delayedCall(GameplayScene.blackFadeDialogueDelayMs, () => {
+        this.silentPauseActive = false;
+        this.startFreeDialogue(dialogueId, () => {
+          this.silentPauseActive = true;
+          this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () => {
+            this.silentPauseActive = false;
+            onComplete();
+          });
+          this.cameras.main.fadeIn(GameplayScene.blackFadeDialogueMs, 0, 0, 0);
+        });
+      });
+    });
+
+    this.cameras.main.fadeOut(GameplayScene.blackFadeDialogueMs, 0, 0, 0);
+  }
+
+  private scheduleZulfanMessageEvent(onComplete: () => void): void {
+    if (
+      this.state.storyFlags.zulfanMessageAvailable === true ||
+      this.state.storyFlags.zulfanMessageRead === true
+    ) {
+      onComplete();
+      return;
+    }
+
+    this.silentPauseActive = true;
+    this.overlay?.setPrompt(null);
+    this.time.delayedCall(GameplayScene.notificationBubbleDelayMs, () => {
+      this.state = this.withStoryFlags(["zulfanMessageAvailable"]);
+      this.playBubblePopupSound();
+      this.silentPauseActive = false;
+      this.refreshZulfanMailBubble();
+      this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+      this.updateInteractionFocus();
+      onComplete();
+    });
+  }
+
+  private scheduleMoneyNotificationEvents(
+    shouldScheduleParentMessage: boolean,
+    shouldSchedulePrayerTimeEvent: boolean,
+    onComplete: () => void,
+  ): void {
+    if (!shouldScheduleParentMessage && !shouldSchedulePrayerTimeEvent) {
+      onComplete();
+      return;
+    }
+
+    this.silentPauseActive = true;
+    this.overlay?.setPrompt(null);
+    this.time.delayedCall(GameplayScene.notificationBubbleDelayMs, () => {
+      if (shouldScheduleParentMessage) {
+        this.state = this.withStoryFlags(["parentMessageAvailable"]);
+        this.playBubblePopupSound();
+        this.refreshParentMailBubble();
+      }
+
+      if (shouldSchedulePrayerTimeEvent) {
+        this.state = this.withStoryFlags(["prayerTimeAvailable"]);
+        this.playAdzanSound();
+        this.refreshPrayerTimeBubble();
+      }
+
+      this.silentPauseActive = false;
+      this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+      this.updateInteractionFocus();
+      onComplete();
+    });
   }
 
   private refreshParentMailBubble(): void {
@@ -786,6 +1214,100 @@ export class GameplayScene extends Phaser.Scene {
     return bubble;
   }
 
+  private refreshZulfanMailBubble(): void {
+    this.destroyZulfanMailBubble();
+    if (!this.shouldShowZulfanMailBubble()) {
+      return;
+    }
+
+    this.zulfanMailBubble = this.createZulfanMailBubble();
+  }
+
+  private shouldShowZulfanMailBubble(): boolean {
+    return (
+      this.isBedroom() &&
+      this.state.storyFlags.zulfanMessageAvailable === true &&
+      this.state.storyFlags.zulfanMessageRead !== true
+    );
+  }
+
+  private createZulfanMailBubble(): Phaser.GameObjects.Container {
+    const { x, y } = GameplayScene.zulfanMailBubblePose;
+    const bubble = createMailBubble(this, {
+      x,
+      y,
+      textureKey: "ui.mail",
+    });
+
+    this.tweens.add({
+      targets: bubble,
+      y: y - 7,
+      duration: 720,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+
+    return bubble;
+  }
+
+  private destroyZulfanMailBubble(): void {
+    if (!this.zulfanMailBubble) {
+      return;
+    }
+
+    this.tweens.killTweensOf(this.zulfanMailBubble);
+    this.zulfanMailBubble.destroy(true);
+    this.zulfanMailBubble = undefined;
+  }
+
+  private refreshPrayerTimeBubble(): void {
+    this.destroyPrayerTimeBubble();
+    if (!this.shouldShowPrayerTimeBubble()) {
+      return;
+    }
+
+    this.prayerTimeBubble = this.createPrayerTimeBubble();
+  }
+
+  private shouldShowPrayerTimeBubble(): boolean {
+    return (
+      this.isBedroom() &&
+      this.state.storyFlags.prayerTimeAvailable === true &&
+      this.state.storyFlags.prayerTimeRead !== true
+    );
+  }
+
+  private createPrayerTimeBubble(): Phaser.GameObjects.Container {
+    const { x, y } = GameplayScene.prayerTimeBubblePose;
+    const bubble = createIconNotificationBubble(this, {
+      x,
+      y,
+      textureKey: "ui.mosque",
+    });
+
+    this.tweens.add({
+      targets: bubble,
+      y: y - 7,
+      duration: 720,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+
+    return bubble;
+  }
+
+  private destroyPrayerTimeBubble(): void {
+    if (!this.prayerTimeBubble) {
+      return;
+    }
+
+    this.tweens.killTweensOf(this.prayerTimeBubble);
+    this.prayerTimeBubble.destroy(true);
+    this.prayerTimeBubble = undefined;
+  }
+
   private destroyParentMailBubble(): void {
     if (!this.parentMailBubble) {
       return;
@@ -807,23 +1329,199 @@ export class GameplayScene extends Phaser.Scene {
     this.pendingInteractableId = null;
     this.moveTarget = null;
     this.stopFootsteps();
-    this.overlay?.showDialogue("parent-message-1", {
-      onChoice: (choice) => {
-        this.state = applyChoice(this.state, choice);
-        this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+    this.overlay?.showPlainTutorialGuidance(
+      "you have messages from your Mom",
+      () => {
+        this.overlay?.showDialogue("parent-message-1", {
+          onChoice: (choice) => {
+            this.state = applyChoice(this.state, choice);
+            this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+          },
+          onComplete: () => {
+            this.dialogueActive = false;
+            this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+            this.time.delayedCall(GameplayScene.monologueBubbleDelayMs, () => {
+              this.showParentMailMonologue();
+            });
+            this.updateInteractionFocus();
+          },
+        });
       },
-      onComplete: () => {
-        this.dialogueActive = false;
-        this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
-        this.updateInteractionFocus();
-      },
-    });
+      "Continue",
+    );
   }
 
-  private isParentMessagePending(): boolean {
+  private startZulfanMessageDialogue(): void {
+    if (this.dialogueActive || this.silentPauseActive || !this.shouldShowZulfanMailBubble()) {
+      return;
+    }
+
+    this.state = this.withStoryFlags(["zulfanMessageRead"]);
+    this.refreshZulfanMailBubble();
+    this.dialogueActive = true;
+    this.pendingInteractableId = null;
+    this.moveTarget = null;
+    this.stopFootsteps();
+    this.overlay?.showPlainTutorialGuidance(
+      "you have messages from your friend",
+      () => {
+        this.overlay?.showDialogue("zulfan-message-1", {
+          onChoice: (choice) => {
+            this.state = applyChoice(this.state, choice);
+            this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+          },
+          onComplete: () => {
+            this.dialogueActive = false;
+            this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+            this.time.delayedCall(GameplayScene.monologueBubbleDelayMs, () => {
+              this.showZulfanReplyMonologue();
+            });
+            this.updateInteractionFocus();
+          },
+        });
+      },
+      "Continue",
+    );
+  }
+
+  private startPrayerTimeDialogue(): void {
+    if (this.dialogueActive || this.silentPauseActive || !this.shouldShowPrayerTimeBubble()) {
+      return;
+    }
+
+    this.state = this.withStoryFlags(["prayerTimeRead"]);
+    this.refreshPrayerTimeBubble();
+    this.dialogueActive = true;
+    this.pendingInteractableId = null;
+    this.moveTarget = null;
+    this.stopFootsteps();
+    this.overlay?.showPlainTutorialGuidance(
+      "Phone Notification: \"It's Prayer Time!\"",
+      () => {
+        this.overlay?.showDialogue("prayer-time-1", {
+          onChoice: (choice) => {
+            this.state = applyChoice(this.state, choice);
+            this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+          },
+          onComplete: () => {
+            this.dialogueActive = false;
+            this.overlay?.updateHud(this.state, getCurrentRoom(this.state).title);
+            this.updateInteractionFocus();
+          },
+        });
+      },
+      "Continue",
+    );
+  }
+
+  private showParentMailMonologue(): void {
+    this.monologueQueue = [];
+    this.monologueQueueIndex = 0;
+    this.showPlayerMonologueBubble("Maybe after I finally get a proper job.", false);
+  }
+
+  private showZulfanReplyMonologue(): void {
+    this.monologueQueue = [...GameplayScene.zulfanReplyMonologueLines];
+    this.monologueQueueIndex = 0;
+    this.showPlayerMonologueBubble(this.monologueQueue[this.monologueQueueIndex], true);
+  }
+
+  private showPlayerMonologueBubble(text: string | undefined, useZulfanReplySize: boolean): void {
+    if (!text) {
+      return;
+    }
+
+    this.destroyMonologueBubble();
+
+    if (!this.player) {
+      return;
+    }
+
+    const bubble = createSpeechBubble(this, {
+      x: this.player.x,
+      y: this.player.y - GameplayScene.monologueBubbleOffsetY,
+      text,
+      speaker: "Raka",
+      maxWidth: useZulfanReplySize
+        ? GameplayScene.zulfanReplyMonologueBubbleWidth
+        : undefined,
+      fixedWidth: useZulfanReplySize,
+      theme: {
+        fillColor: 0xffffff,
+        borderColor: 0x3a3540,
+        shadowColor: 0x1a1d28,
+        textColor: "#1a1d28",
+        speakerColor: "#b84f61",
+      },
+    }) as SpeechBubbleContainer;
+
+    this.monologueBubble = bubble;
+    this.monologueDismissReady = false;
+
+    if (this.state.storyFlags.monologueEnterTutorialShown !== true) {
+      this.dialogueActive = true;
+      this.overlay?.showPlainTutorialGuidance(
+        "Click Enter to dismiss the bubble chat.",
+        () => {
+          this.state = this.withStoryFlags(["monologueEnterTutorialShown"]);
+          this.dialogueActive = false;
+          this.time.delayedCall(800, () => {
+            this.monologueDismissReady = true;
+          });
+        },
+        "Got it",
+      );
+    } else {
+      this.monologueDismissReady = true;
+    }
+  }
+
+  private advanceMonologueBubble(): void {
+    this.monologueDismissReady = false;
+
+    if (this.monologueQueueIndex < this.monologueQueue.length - 1) {
+      this.destroyMonologueBubble(() => {
+        this.monologueQueueIndex += 1;
+        this.showPlayerMonologueBubble(this.monologueQueue[this.monologueQueueIndex], true);
+      });
+      return;
+    }
+
+    this.monologueQueue = [];
+    this.monologueQueueIndex = 0;
+    this.destroyMonologueBubble();
+  }
+
+  private destroyMonologueBubble(onComplete?: () => void): void {
+    if (!this.monologueBubble) {
+      onComplete?.();
+      return;
+    }
+
+    const bubble = this.monologueBubble;
+    this.monologueBubble = undefined;
+    bubble.destroyBubble(onComplete);
+  }
+
+  private updateMonologueBubblePosition(): void {
+    if (!this.monologueBubble || !this.player) {
+      return;
+    }
+
+    this.monologueBubble.setPosition(
+      this.player.x,
+      this.player.y - GameplayScene.monologueBubbleOffsetY,
+    );
+  }
+
+  private isMessagePending(): boolean {
     return (
-      this.state.storyFlags.parentMessageAvailable === true &&
-      this.state.storyFlags.parentMessageRead !== true
+      (this.state.storyFlags.parentMessageAvailable === true &&
+        this.state.storyFlags.parentMessageRead !== true) ||
+      (this.state.storyFlags.zulfanMessageAvailable === true &&
+        this.state.storyFlags.zulfanMessageRead !== true) ||
+      (this.state.storyFlags.prayerTimeAvailable === true &&
+        this.state.storyFlags.prayerTimeRead !== true)
     );
   }
 
@@ -832,7 +1530,15 @@ export class GameplayScene extends Phaser.Scene {
       return this.shouldShowParentMailBubble();
     }
 
-    if (this.isParentMessagePending()) {
+    if (interactable.id === GameplayScene.zulfanMailInteractableId) {
+      return this.shouldShowZulfanMailBubble();
+    }
+
+    if (interactable.id === GameplayScene.prayerTimeInteractableId) {
+      return this.shouldShowPrayerTimeBubble();
+    }
+
+    if (this.isMessagePending()) {
       return false;
     }
 
@@ -853,17 +1559,27 @@ export class GameplayScene extends Phaser.Scene {
 
   private getInteractionTargets(): Interactable[] {
     const interactables = getVisibleInteractables(this.state);
-    if (!this.shouldShowParentMailBubble()) {
-      return interactables;
+    const messageInteractables: Interactable[] = [];
+
+    if (this.shouldShowParentMailBubble()) {
+      messageInteractables.push(this.getParentMailInteractable());
     }
 
-    return [...interactables, this.getParentMailInteractable()];
+    if (this.shouldShowZulfanMailBubble()) {
+      messageInteractables.push(this.getZulfanMailInteractable());
+    }
+
+    if (this.shouldShowPrayerTimeBubble()) {
+      messageInteractables.push(this.getPrayerTimeInteractable());
+    }
+
+    return [...interactables, ...messageInteractables];
   }
 
   private getParentMailInteractable(): Interactable {
     return {
       id: GameplayScene.parentMailInteractableId,
-      label: "Mail",
+      label: "Mail from Parent",
       kind: "object",
       x: GameplayScene.parentMailInteractionPose.x,
       y: GameplayScene.parentMailInteractionPose.y,
@@ -873,16 +1589,45 @@ export class GameplayScene extends Phaser.Scene {
     };
   }
 
-  private isPointOnParentMailBubble(x: number, y: number): boolean {
-    const bubble = GameplayScene.parentMailBubblePose;
-    const hitBox = GameplayScene.parentMailBubbleHitBox;
+  private getZulfanMailInteractable(): Interactable {
+    return {
+      id: GameplayScene.zulfanMailInteractableId,
+      label: "Email from Friend",
+      kind: "object",
+      x: GameplayScene.zulfanMailInteractionPose.x,
+      y: GameplayScene.zulfanMailInteractionPose.y,
+      radius: 58,
+      dialogueId: "zulfan-message-1",
+      repeatable: true,
+    };
+  }
+
+  private getPrayerTimeInteractable(): Interactable {
+    return {
+      id: GameplayScene.prayerTimeInteractableId,
+      label: "Prayer Time",
+      kind: "object",
+      x: GameplayScene.prayerTimeInteractionPose.x,
+      y: GameplayScene.prayerTimeInteractionPose.y,
+      radius: 58,
+      dialogueId: "prayer-time-1",
+      repeatable: true,
+    };
+  }
+
+  private isPointOnMailBubble(
+    x: number,
+    y: number,
+    bubble: { x: number; y: number },
+    hitBox: { width: number; height: number },
+    interaction: { x: number; y: number },
+  ): boolean {
     const onBubble =
       Math.abs(x - bubble.x) <= hitBox.width / 2 && Math.abs(y - bubble.y) <= hitBox.height / 2;
     if (onBubble) {
       return true;
     }
 
-    const interaction = GameplayScene.parentMailInteractionPose;
     return Phaser.Math.Distance.Between(x, y, interaction.x, interaction.y) <= 58;
   }
 
@@ -1083,6 +1828,22 @@ export class GameplayScene extends Phaser.Scene {
 
   private playEarnMoneySound(): void {
     this.sound.play("sfx.money.earn", { volume: 0.86 });
+  }
+
+  private playBubblePopupSound(): void {
+    this.sound.play("sfx.bubble.popup", { volume: 0.82 });
+  }
+
+  private playAdzanSound(): void {
+    this.sound.play("sfx.prayer.adzan", { volume: 0.86 });
+  }
+
+  private playCricketSound(): void {
+    this.sound.play("sfx.environment.cricket", { volume: 0.72 });
+  }
+
+  private playChickenSound(): void {
+    this.sound.play("sfx.environment.chicken", { volume: 0.78 });
   }
 
   private playDoorRustleSound(onComplete: () => void): void {

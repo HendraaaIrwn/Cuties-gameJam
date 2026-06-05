@@ -39,8 +39,11 @@ const bedroomLayerKeys = [
 ] as const;
 const bedroomInteractableIds = new Set(["bed", "chair", "door", "laptop", "wardrobe"]);
 const bedroomLayerName = "bedroom-room-layer";
+const bedroomNightOverlayName = "bedroom-night-overlay";
 const bedroomScale = 7.5;
 const bedroomOffsetY = 30;
+export const bedroomNightOverlayDepth = 510;
+export const bedroomPlayerDepth = 620;
 const bedroomLayerDepths: Record<(typeof bedroomLayerKeys)[number], number> = {
   "room.bedroom.base": -100,
   "room.bedroom.door": -99,
@@ -61,6 +64,7 @@ export function preloadRoomSprites(scene: Phaser.Scene): void {
   for (const key of bedroomLayerKeys) {
     scene.load.image(key, assetManifest.rooms[key]);
   }
+  scene.load.image("room.bedroom.nightOverlay", assetManifest.rooms["room.bedroom.nightOverlay"]);
 }
 
 export function createPlayerAnimations(scene: Phaser.Scene): void {
@@ -129,8 +133,22 @@ export function createPlayer(scene: Phaser.Scene): Phaser.GameObjects.Sprite {
   const sprite = scene.add.sprite(0, 0, playerFrames.down[0]);
   sprite.setOrigin(0.5, 0.9);
   sprite.setScale(7);
-  sprite.setDepth(20);
+  sprite.setDepth(bedroomPlayerDepth);
   return sprite;
+}
+
+export function createBedroomNightOverlay(
+  scene: Phaser.Scene,
+  alpha: number,
+): Phaser.GameObjects.Image {
+  return scene.add
+    .image(0, bedroomOffsetY, "room.bedroom.nightOverlay")
+    .setName(bedroomNightOverlayName)
+    .setOrigin(0, 0)
+    .setScale(bedroomScale)
+    .setDepth(bedroomNightOverlayDepth)
+    .setAlpha(alpha)
+    .setBlendMode(Phaser.BlendModes.MULTIPLY);
 }
 
 export function createInteractableView(
