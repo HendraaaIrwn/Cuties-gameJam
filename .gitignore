@@ -24,3 +24,9 @@ pnpm-debug.log*
 # Tool caches
 .vite/
 coverage/
+
+#agent and skill
+.agents/
+.skill/
+.claude/
+.lexa/
