@@ -39,6 +39,7 @@ const bedroomLayerKeys = [
 ] as const;
 const bedroomInteractableIds = new Set(["bed", "chair", "door", "laptop", "wardrobe"]);
 const bedroomLayerName = "bedroom-room-layer";
+const bedroomClockLayerName = "bedroom-clock-layer";
 const bedroomNightOverlayName = "bedroom-night-overlay";
 const bedroomScale = 7.5;
 const bedroomOffsetY = 30;
@@ -53,6 +54,12 @@ const bedroomLayerDepths: Record<(typeof bedroomLayerKeys)[number], number> = {
   "room.bedroom.chair": -95,
   "room.bedroom.desk": 520,
 };
+export const bedroomClockFrameKeys = [
+  "room.bedroom.clock.1",
+  "room.bedroom.clock.2",
+  "room.bedroom.clock.3",
+  "room.bedroom.clock.4",
+] as const;
 
 export function preloadPlayerSprites(scene: Phaser.Scene): void {
   for (const [key, file] of Object.entries(playerFiles)) {
@@ -62,6 +69,9 @@ export function preloadPlayerSprites(scene: Phaser.Scene): void {
 
 export function preloadRoomSprites(scene: Phaser.Scene): void {
   for (const key of bedroomLayerKeys) {
+    scene.load.image(key, assetManifest.rooms[key]);
+  }
+  for (const key of bedroomClockFrameKeys) {
     scene.load.image(key, assetManifest.rooms[key]);
   }
   scene.load.image("room.bedroom.nightOverlay", assetManifest.rooms["room.bedroom.nightOverlay"]);
@@ -151,6 +161,15 @@ export function createBedroomNightOverlay(
     .setBlendMode(Phaser.BlendModes.MULTIPLY);
 }
 
+export function setBedroomClockFrame(scene: Phaser.Scene, frameIndex: number): void {
+  const frameKey = bedroomClockFrameKeys[frameIndex % bedroomClockFrameKeys.length];
+  for (const child of scene.children.list) {
+    if (child.name === bedroomClockLayerName && child instanceof Phaser.GameObjects.Image) {
+      child.setTexture(frameKey);
+    }
+  }
+}
+
 export function createInteractableView(
   scene: Phaser.Scene,
   interactable: Interactable,
@@ -223,7 +242,7 @@ function drawBedroom(scene: Phaser.Scene): void {
   bedroomLayerKeys.forEach((key) => {
     scene.add
       .image(0, bedroomOffsetY, key)
-      .setName(bedroomLayerName)
+      .setName(key === "room.bedroom.clock" ? bedroomClockLayerName : bedroomLayerName)
       .setOrigin(0, 0)
       .setScale(bedroomScale)
       .setDepth(bedroomLayerDepths[key]);
@@ -232,7 +251,7 @@ function drawBedroom(scene: Phaser.Scene): void {
 
 function clearBedroomLayers(scene: Phaser.Scene): void {
   for (const child of [...scene.children.list]) {
-    if (child.name === bedroomLayerName) {
+    if (child.name === bedroomLayerName || child.name === bedroomClockLayerName) {
       child.destroy();
     }
   }

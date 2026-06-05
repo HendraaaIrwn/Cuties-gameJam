@@ -37,6 +37,7 @@ import {
   playPlayerWalk,
   preloadPlayerSprites,
   preloadRoomSprites,
+  setBedroomClockFrame,
   setPlayerIdle,
   setPlayerMirrorIdle,
   setInteractableHighlighted,
@@ -126,6 +127,7 @@ export class GameplayScene extends Phaser.Scene {
   private nightOverlay?: Phaser.GameObjects.Image;
   private dayNightTimer?: Phaser.Time.TimerEvent;
   private isNight = false;
+  private bedroomClockFrameIndex = 0;
   private shouldFadeInFromEpilogue = false;
 
   constructor() {
@@ -247,6 +249,7 @@ export class GameplayScene extends Phaser.Scene {
     this.highlightedId = null;
 
     drawRoom(this, this.roomGraphics, room.id);
+    this.refreshBedroomClockFrame();
     this.refreshNightOverlay();
 
     if (!this.player) {
@@ -294,6 +297,7 @@ export class GameplayScene extends Phaser.Scene {
 
   private toggleDayNight(): void {
     this.isNight = !this.isNight;
+    this.advanceBedroomClockFrame();
     const overlay = this.ensureNightOverlay();
     if (!overlay) {
       if (this.isNight) {
@@ -317,6 +321,19 @@ export class GameplayScene extends Phaser.Scene {
     } else {
       this.playChickenSound();
     }
+  }
+
+  private advanceBedroomClockFrame(): void {
+    this.bedroomClockFrameIndex += 1;
+    this.refreshBedroomClockFrame();
+  }
+
+  private refreshBedroomClockFrame(): void {
+    if (!this.isBedroom()) {
+      return;
+    }
+
+    setBedroomClockFrame(this, this.bedroomClockFrameIndex);
   }
 
   private refreshNightOverlay(): void {
