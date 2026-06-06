@@ -78,14 +78,19 @@ export class NarrativeOverlay {
       <section class="title-screen">
         <div class="title-copy">
           <p class="eyebrow">Walking Sim / Visual Novel</p>
-          <h1>ALMOST THERE</h1>
-          <p class="tagline">Beta Version</p>
-          <button class="primary-action" type="button">Start</button>
+          <h1>Almost There</h1>
+          <p class="tagline">A quiet room, one laptop, and the fear that everyone else is already ahead.</p>
+          <div class="menu-actions">
+            <button class="primary-action" type="button" data-menu-start>Start</button>
+          </div>
+          <div class="menu-status" aria-label="Story preview">
+            <p>Experience the pressure of keeping up with others, the refusal to fall behind, and the replaying of moments that define us.</p>
+          </div>
         </div>
       </section>
     `;
 
-    this.root.querySelector("button")?.addEventListener("click", onStart, { once: true });
+    this.root.querySelector("[data-menu-start]")?.addEventListener("click", onStart, { once: true });
   }
 
   mountHud(): void {
@@ -151,7 +156,7 @@ export class NarrativeOverlay {
         <p class="eyebrow">Recording complete</p>
         <h2>You only live once.</h2>
         <p>What are you really chasing?</p>
-        <button class="primary-action" type="button">Play Again</button>
+        <button class="primary-action play-again-action" type="button">Play Again</button>
       </article>
     `;
 

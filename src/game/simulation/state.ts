@@ -7,7 +7,7 @@ export function createInitialState(): GameState {
     storyFlags: {},
     completedInteractions: [],
     arrowMinigame: null,
-    money: 0,
+    money: 450,
   };
 }
 
