@@ -49,6 +49,7 @@ export class FinalMemoryScene extends Phaser.Scene {
   private static readonly theEndDelayMs = 900;
   private static readonly theEndFadeMs = 900;
   private static readonly playAgainFadeOutMs = 700;
+  private static readonly playAgainPressDelayMs = 130;
   private static readonly finalMemoryVolume = 0.62;
   private static readonly memories: FinalMemoryDefinition[] = [
     {
@@ -79,6 +80,7 @@ export class FinalMemoryScene extends Phaser.Scene {
   private phase: FinalMemoryPhase = "intro";
   private worldScroll = 0;
   private activeMemoryIndex = 0;
+  private playAgainTransitionStarted = false;
 
   constructor() {
     super("FinalMemoryScene");
@@ -97,6 +99,7 @@ export class FinalMemoryScene extends Phaser.Scene {
     this.worldScroll = 0;
     this.activeMemoryIndex = 0;
     this.memoryViews = [];
+    this.playAgainTransitionStarted = false;
     this.cameras.main.resetFX();
     this.cameras.main.setBackgroundColor("#ffffff");
     this.add.rectangle(480, 270, 960, 540, 0xffffff).setDepth(-100);
@@ -425,7 +428,59 @@ export class FinalMemoryScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const hitZone = this.add.zone(0, 0, 180, 48).setInteractive({ useHandCursor: true });
-    hitZone.on("pointerdown", () => this.startPlayAgainTransition());
+    hitZone.on("pointerover", () => {
+      if (this.playAgainTransitionStarted) return;
+      this.tweens.killTweensOf([container, shadow]);
+      backing.setFillStyle(0x848484, 1);
+      text.setColor("#ffffff");
+      shadow.setPosition(8, 8);
+      shadow.setAlpha(1);
+      this.tweens.add({
+        targets: container,
+        y: 330,
+        scale: 1.06,
+        duration: 120,
+        ease: "Sine.easeOut",
+      });
+      this.tweens.add({
+        targets: shadow,
+        alpha: 0.55,
+        duration: 240,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
+      });
+    });
+    hitZone.on("pointerout", () => {
+      if (this.playAgainTransitionStarted) return;
+      this.tweens.killTweensOf([container, shadow]);
+      backing.setFillStyle(0xffffff, 1);
+      text.setColor("#000000");
+      shadow.setPosition(6, 6);
+      shadow.setAlpha(1);
+      this.tweens.add({
+        targets: container,
+        y: 334,
+        scale: 1,
+        duration: 120,
+        ease: "Sine.easeOut",
+      });
+    });
+    hitZone.on("pointerdown", () => {
+      if (this.playAgainTransitionStarted) return;
+      this.playAgainTransitionStarted = true;
+      this.tweens.killTweensOf([container, shadow]);
+      backing.setFillStyle(0x6f6f6f, 1);
+      text.setColor("#ffffff");
+      shadow.setPosition(2, 2);
+      shadow.setAlpha(0.38);
+      container.setScale(0.96);
+      container.setY(338);
+      this.time.delayedCall(
+        FinalMemoryScene.playAgainPressDelayMs,
+        () => this.startPlayAgainTransition(),
+      );
+    });
     container.add([shadow, backing, text, hitZone]);
     return container;
   }
