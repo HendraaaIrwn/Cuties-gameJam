@@ -34,6 +34,7 @@ export interface DialogueNode {
   id: string;
   speaker: string;
   text: string;
+  textClass?: string;
   portraitKey?: string;
   next?: string;
   choices?: Choice[];
@@ -66,6 +67,7 @@ export interface RoomDefinition {
 export interface AssetManifest {
   characters: Record<string, string>;
   rooms: Record<string, string>;
+  endings: Record<string, string>;
   ui: Record<string, string>;
   audio: Record<string, string>;
 }

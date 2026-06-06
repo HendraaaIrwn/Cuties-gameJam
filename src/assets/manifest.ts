@@ -40,6 +40,11 @@ export const assetManifest: AssetManifest = {
     "room.street": "procedural/street",
     "room.replay": "procedural/replay",
   },
+  endings: {
+    "ending.family": "/assets/endings/family-end.png",
+    "ending.friends": "/assets/endings/friends-end.png",
+    "ending.praying": "/assets/endings/praying-end.png",
+  },
   ui: {
     "ui.textbox": "dom/textbox",
     "ui.interact": "procedural/interact",
@@ -57,6 +62,7 @@ export const assetManifest: AssetManifest = {
     "sfx.prayer.adzan": "/assets/audio/sound-adzan.wav",
     "sfx.environment.cricket": "/assets/audio/cricket.mp3",
     "sfx.environment.chicken": "/assets/audio/chicken.mp3",
+    "bgm.finalMemory": "/assets/audio/final-memory-sound.mp3",
     "bgm.phase1": "/assets/audio/backsound-phase1.mp3",
   },
 };

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import "./style.css";
 import { BootScene } from "./phaser/scenes/BootScene";
 import { EpilogueScene } from "./phaser/scenes/EpilogueScene";
+import { FinalMemoryScene } from "./phaser/scenes/FinalMemoryScene";
 import { GameplayScene } from "./phaser/scenes/GameplayScene";
 import { MenuScene } from "./phaser/scenes/MenuScene";
 
@@ -22,6 +23,7 @@ const config: Phaser.Types.Core.GameConfig = {
     MenuScene,
     EpilogueScene,
     GameplayScene,
+    FinalMemoryScene,
   ],
 };
 
