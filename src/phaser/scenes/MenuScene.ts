@@ -3,7 +3,9 @@ import { NarrativeOverlay } from "../../ui/NarrativeOverlay";
 
 export class MenuScene extends Phaser.Scene {
   private static readonly startFadeMs = 700;
+  private static readonly replayFadeInMs = 700;
   private overlay?: NarrativeOverlay;
+  private shouldFadeInFromPlayAgain = false;
 
   constructor() {
     super("MenuScene");
@@ -13,7 +15,12 @@ export class MenuScene extends Phaser.Scene {
     this.load.video("epilogue-scene", "assets/video/epilogue-scene.mp4");
   }
 
+  init(data: { fadeInFromPlayAgain?: boolean } = {}): void {
+    this.shouldFadeInFromPlayAgain = data.fadeInFromPlayAgain === true;
+  }
+
   create(): void {
+    this.cameras.main.resetFX();
     this.cameras.main.setBackgroundColor("#151923");
     this.add.rectangle(480, 420, 960, 240, 0x1d2430);
     this.add.rectangle(216, 342, 190, 150, 0x2f3d4d);
@@ -31,9 +38,15 @@ export class MenuScene extends Phaser.Scene {
       });
       this.cameras.main.fadeOut(MenuScene.startFadeMs, 0, 0, 0);
     });
+
+    if (this.shouldFadeInFromPlayAgain) {
+      this.cameras.main.fadeIn(MenuScene.replayFadeInMs, 0, 0, 0);
+    }
   }
 
   shutdown(): void {
     this.overlay?.destroy();
+    this.overlay = undefined;
+    this.shouldFadeInFromPlayAgain = false;
   }
 }

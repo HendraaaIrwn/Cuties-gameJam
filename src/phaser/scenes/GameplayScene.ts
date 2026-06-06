@@ -47,6 +47,8 @@ import {
 export class GameplayScene extends Phaser.Scene {
   private static readonly firstWorkRewardGuidance =
     "You earned $25 for working hard. Keep working to earn more money.";
+  private static readonly firstWorkGoalGuidance =
+    "you have to collect $500 so you can be successful";
   private static readonly vacanciesDialogueMoneyThreshold = 50;
   private static readonly applications125DialogueMoneyThreshold = 125;
   private static readonly foodOrderMoneyThreshold = 75;
@@ -63,6 +65,10 @@ export class GameplayScene extends Phaser.Scene {
   private static readonly bedroomLaptopInteractionPose = { x: 620, y: 486, facing: "down" as const };
   private static readonly bedroomLaptopWorkingPose = { x: 620, y: 492, facing: "down" as const };
   private static readonly bedroomLaptopPlayerDepth = 515;
+  private static readonly laptopBlueLightDepth = 517;
+  private static readonly laptopBlueLightPosition = { x: 280, y: 119 };
+  private static readonly laptopBlueLightScale = 4.2;
+  private static readonly laptopBlueLightAlpha = 0.58;
   private static readonly bedroomDeskOcclusionBounds = { left: 420, right: 820 };
   private static readonly playerStandingScale = 7;
   private static readonly playerSittingScaleY = 7;
@@ -80,18 +86,29 @@ export class GameplayScene extends Phaser.Scene {
   private static readonly prayerTimeBubbleHitBox = { width: 104, height: 112 };
   private static readonly footstepVolume = 0.34;
   private static readonly footstepRate = 1.5;
+  private static readonly phase1BacksoundVolume = 0.1;
   private static readonly postMinigameSilentMs = 1200;
   private static readonly notificationBubbleDelayMs = 900;
   private static readonly foodOrderArrivalDelayMs = 900;
   private static readonly doorKnockDelayMs = 900;
   private static readonly monologueBubbleOffsetY = 280;
   private static readonly monologueBubbleDelayMs = 1000;
-  private static readonly blackFadeDialogueMs = 1200;
-  private static readonly blackFadeDialogueDelayMs = 700;
+  private static readonly phase1BacksoundStartMoneyThreshold = 25;
+  private static readonly phase1BacksoundStartDelayMs = 1200;
+  private static readonly faintBeforeOverlayDelayMs = 1000;
+  private static readonly faintRedOverlayHoldMs = 2500;
+  private static readonly faintRedOverlayFadeMs = 220;
+  private static readonly faintRedOverlayAlpha = 0.58;
+  private static readonly faintShakeMs = 1150;
+  private static readonly faintShakeIntensity = 0.055;
+  private static readonly faintBlackFadeMs = 1400;
+  private static readonly faintBlackHoldMs = 700;
+  private static readonly faintBlackoutAlpha = 0.96;
+  private static readonly faintAfterDialoguePauseMs = 900;
   private static readonly zulfanReplyMonologueBubbleWidth = 270;
   private static readonly dayNightCycleMs = 30_000;
   private static readonly dayNightFadeMs = 1200;
-  private static readonly nightOverlayAlpha = 0.32;
+  private static readonly nightOverlayAlpha = 0.82;
   private static readonly epilogueFadeInMs = 1200;
   private static readonly zulfanReplyMonologueLines = [
     "Royyan already becoming a director.",
@@ -105,6 +122,8 @@ export class GameplayScene extends Phaser.Scene {
   private overlay?: NarrativeOverlay;
   private roomGraphics?: Phaser.GameObjects.Graphics;
   private player?: Phaser.GameObjects.Sprite;
+  private laptopBlueLight?: Phaser.GameObjects.Image;
+  private laptopBlueLightEnabled = false;
   private parentMailBubble?: Phaser.GameObjects.Container;
   private zulfanMailBubble?: Phaser.GameObjects.Container;
   private prayerTimeBubble?: Phaser.GameObjects.Container;
@@ -119,6 +138,7 @@ export class GameplayScene extends Phaser.Scene {
   private silentPauseActive = false;
   private playerFacing: PlayerFacing = "up";
   private footstepSound?: Phaser.Sound.BaseSound;
+  private phase1Backsound?: Phaser.Sound.BaseSound;
   private monologueBubble?: SpeechBubbleContainer;
   private enterKey?: Phaser.Input.Keyboard.Key;
   private monologueDismissReady = false;
@@ -151,12 +171,15 @@ export class GameplayScene extends Phaser.Scene {
     this.load.audio("sfx.prayer.adzan", assetManifest.audio["sfx.prayer.adzan"]);
     this.load.audio("sfx.environment.cricket", assetManifest.audio["sfx.environment.cricket"]);
     this.load.audio("sfx.environment.chicken", assetManifest.audio["sfx.environment.chicken"]);
+    this.load.audio("bgm.phase1", assetManifest.audio["bgm.phase1"]);
+    this.load.image("room.bedroom.laptopBlueLight", assetManifest.rooms["room.bedroom.laptopBlueLight"]);
     this.load.image("ui.mail", assetManifest.ui["ui.mail"]);
     this.load.image("ui.mosque", assetManifest.ui["ui.mosque"]);
   }
 
   create(): void {
-    this.state = createInitialState();
+    this.resetRuntimeState();
+    this.cameras.main.resetFX();
     this.overlay = new NarrativeOverlay();
     this.overlay.mountHud();
     this.overlay.clearEnding();
@@ -165,6 +188,10 @@ export class GameplayScene extends Phaser.Scene {
       loop: true,
       rate: GameplayScene.footstepRate,
       volume: GameplayScene.footstepVolume,
+    });
+    this.phase1Backsound = this.sound.add("bgm.phase1", {
+      loop: true,
+      volume: GameplayScene.phase1BacksoundVolume,
     });
 
     this.cursors = this.input.keyboard?.createCursorKeys();
@@ -208,6 +235,66 @@ export class GameplayScene extends Phaser.Scene {
     this.updateInteractionFocus();
   }
 
+  shutdown(): void {
+    this.overlay?.destroy();
+    this.overlay = undefined;
+    this.destroyLoopingSounds();
+    this.dayNightTimer?.remove(false);
+    this.dayNightTimer = undefined;
+    this.destroyParentMailBubble();
+    this.destroyZulfanMailBubble();
+    this.destroyPrayerTimeBubble();
+    this.destroyMonologueBubble();
+    this.destroyLaptopBlueLight();
+    this.destroyNightOverlay();
+    this.time.removeAllEvents();
+    this.tweens.killAll();
+    this.input.off("pointerdown");
+    this.resetRuntimeState();
+  }
+
+  private destroyLoopingSounds(): void {
+    this.stopFootsteps();
+    this.footstepSound?.destroy();
+    this.footstepSound = undefined;
+
+    this.stopPhase1Backsound();
+    this.phase1Backsound?.destroy();
+    this.phase1Backsound = undefined;
+  }
+
+  private resetRuntimeState(): void {
+    this.state = createInitialState();
+    this.roomGraphics = undefined;
+    this.player = undefined;
+    this.laptopBlueLight = undefined;
+    this.laptopBlueLightEnabled = false;
+    this.parentMailBubble = undefined;
+    this.zulfanMailBubble = undefined;
+    this.prayerTimeBubble = undefined;
+    this.cursors = undefined;
+    this.keys = undefined;
+    this.interactableViews.clear();
+    this.moveTarget = null;
+    this.pendingInteractableId = null;
+    this.activeDeskInteractable = null;
+    this.highlightedId = null;
+    this.dialogueActive = false;
+    this.silentPauseActive = false;
+    this.playerFacing = "up";
+    this.footstepSound = undefined;
+    this.phase1Backsound = undefined;
+    this.monologueBubble = undefined;
+    this.enterKey = undefined;
+    this.monologueDismissReady = false;
+    this.monologueQueue = [];
+    this.monologueQueueIndex = 0;
+    this.nightOverlay = undefined;
+    this.dayNightTimer = undefined;
+    this.isNight = false;
+    this.bedroomClockFrameIndex = 0;
+  }
+
   private bindInput(): void {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this.dialogueActive || this.silentPauseActive || this.state.phase === "ending") {
@@ -246,6 +333,7 @@ export class GameplayScene extends Phaser.Scene {
     this.destroyZulfanMailBubble();
     this.destroyPrayerTimeBubble();
     this.destroyMonologueBubble();
+    this.destroyLaptopBlueLight();
     this.highlightedId = null;
 
     drawRoom(this, this.roomGraphics, room.id);
@@ -298,6 +386,7 @@ export class GameplayScene extends Phaser.Scene {
   private toggleDayNight(): void {
     this.isNight = !this.isNight;
     this.advanceBedroomClockFrame();
+    this.updateLaptopBlueLightVisibility();
     const overlay = this.ensureNightOverlay();
     if (!overlay) {
       if (this.isNight) {
@@ -836,6 +925,7 @@ export class GameplayScene extends Phaser.Scene {
     if (isWorking) {
       this.setPlayerLaptopWorkPose();
     } else {
+      this.setPlayerStandingScale();
       setPlayerIdle(this.player, this.playerFacing);
     }
     this.setPlayerLaptopDepth();
@@ -857,14 +947,56 @@ export class GameplayScene extends Phaser.Scene {
     );
     playPlayerWalk(this.player, this.playerFacing);
     this.setPlayerLaptopDepth();
+    this.showLaptopBlueLight();
   }
 
   private setPlayerStandingScale(): void {
     this.player?.setScale(GameplayScene.playerStandingScale);
+    this.hideLaptopBlueLight();
   }
 
   private setPlayerLaptopDepth(): void {
     this.player?.setDepth(GameplayScene.bedroomLaptopPlayerDepth);
+  }
+
+  private showLaptopBlueLight(): void {
+    if (!this.isBedroom()) {
+      return;
+    }
+
+    this.laptopBlueLightEnabled = true;
+
+    if (!this.laptopBlueLight) {
+      this.laptopBlueLight = this.add
+        .image(
+          GameplayScene.laptopBlueLightPosition.x,
+          GameplayScene.laptopBlueLightPosition.y,
+          "room.bedroom.laptopBlueLight",
+        )
+        .setOrigin(0, 0)
+        .setScale(GameplayScene.laptopBlueLightScale)
+        .setAlpha(GameplayScene.laptopBlueLightAlpha)
+        .setDepth(GameplayScene.laptopBlueLightDepth);
+    }
+
+    this.updateLaptopBlueLightVisibility();
+  }
+
+  private hideLaptopBlueLight(): void {
+    this.laptopBlueLightEnabled = false;
+    this.updateLaptopBlueLightVisibility();
+  }
+
+  private updateLaptopBlueLightVisibility(): void {
+    this.laptopBlueLight?.setVisible(
+      this.laptopBlueLightEnabled && this.isNight && this.isBedroom(),
+    );
+  }
+
+  private destroyLaptopBlueLight(): void {
+    this.laptopBlueLight?.destroy();
+    this.laptopBlueLight = undefined;
+    this.laptopBlueLightEnabled = false;
   }
 
   private startDeskWork(interactable: Interactable): void {
@@ -938,15 +1070,19 @@ export class GameplayScene extends Phaser.Scene {
     }
 
     this.overlay?.hideArrowMinigame();
+    this.hideLaptopBlueLight();
     this.state = clearArrowMinigame(this.state);
     let shouldShowFirstWorkRewardGuidance = false;
     let rewardDialogueId: string | null = null;
     let shouldScheduleParentMessage = false;
     let shouldSchedulePrayerTimeEvent = false;
+    let shouldStartPhase1Backsound = false;
     if (this.shouldEarnMoneyFromWork(deskInteractable)) {
       shouldShowFirstWorkRewardGuidance = this.shouldShowFirstWorkRewardGuidance();
       this.state = earnMoney(this.state);
       this.playEarnMoneySound();
+      shouldStartPhase1Backsound =
+        this.state.money === GameplayScene.phase1BacksoundStartMoneyThreshold;
       if (shouldShowFirstWorkRewardGuidance) {
         this.state = this.withStoryFlags(["firstWorkRewardNotificationShown"]);
       }
@@ -979,7 +1115,8 @@ export class GameplayScene extends Phaser.Scene {
           this.scheduleMoneyNotificationEvents(
             shouldScheduleParentMessage,
             shouldSchedulePrayerTimeEvent,
-            () => this.continueAfterDeskWork(deskInteractable),
+            () =>
+              this.continueAfterMoneyEvents(shouldStartPhase1Backsound, deskInteractable),
           ),
         );
       });
@@ -990,9 +1127,22 @@ export class GameplayScene extends Phaser.Scene {
       this.scheduleMoneyNotificationEvents(
         shouldScheduleParentMessage,
         shouldSchedulePrayerTimeEvent,
-        () => this.continueAfterDeskWork(deskInteractable),
+        () => this.continueAfterMoneyEvents(shouldStartPhase1Backsound, deskInteractable),
       ),
     );
+  }
+
+  private continueAfterMoneyEvents(
+    shouldStartPhase1Backsound: boolean,
+    deskInteractable: Interactable,
+  ): void {
+    if (shouldStartPhase1Backsound) {
+      this.time.delayedCall(GameplayScene.phase1BacksoundStartDelayMs, () => {
+        this.startPhase1Backsound();
+      });
+    }
+
+    this.continueAfterDeskWork(deskInteractable);
   }
 
   private continueAfterDeskWork(deskInteractable: Interactable): void {
@@ -1034,7 +1184,7 @@ export class GameplayScene extends Phaser.Scene {
   }
 
   private shouldShowFirstWorkRewardGuidance(): boolean {
-    return this.state.storyFlags.firstWorkRewardNotificationShown !== true;
+    return this.state.money === 0 && this.state.storyFlags.firstWorkRewardNotificationShown !== true;
   }
 
   private getEarnMoneyDialogueId(): string | null {
@@ -1088,8 +1238,14 @@ export class GameplayScene extends Phaser.Scene {
     this.overlay?.showPlainTutorialGuidance(
       GameplayScene.firstWorkRewardGuidance,
       () => {
-        this.dialogueActive = false;
-        onComplete();
+        this.overlay?.showPlainTutorialGuidance(
+          GameplayScene.firstWorkGoalGuidance,
+          () => {
+            this.dialogueActive = false;
+            onComplete();
+          },
+          "Continue",
+        );
       },
       "Continue",
     );
@@ -1107,14 +1263,14 @@ export class GameplayScene extends Phaser.Scene {
     }
 
     if (dialogueId === "money-475-ugh") {
-      this.startBlackFadeDialogue(dialogueId, onComplete);
+      this.startFaintEventDialogue(dialogueId);
       return;
     }
 
     this.startFreeDialogue(dialogueId, onComplete);
   }
 
-  private startBlackFadeDialogue(dialogueId: string, onComplete: () => void): void {
+  private startFaintEventDialogue(dialogueId: string): void {
     this.silentPauseActive = true;
     this.overlay?.setPrompt(null);
     this.stopFootsteps();
@@ -1123,21 +1279,43 @@ export class GameplayScene extends Phaser.Scene {
       setPlayerIdle(this.player, this.playerFacing);
     }
 
-    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      this.time.delayedCall(GameplayScene.blackFadeDialogueDelayMs, () => {
-        this.silentPauseActive = false;
-        this.startFreeDialogue(dialogueId, () => {
-          this.silentPauseActive = true;
-          this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () => {
-            this.silentPauseActive = false;
-            onComplete();
+    this.time.delayedCall(GameplayScene.faintBeforeOverlayDelayMs, () => {
+      this.startFaintCollapse(dialogueId);
+    });
+  }
+
+  private startFaintCollapse(dialogueId: string): void {
+    this.stopPhase1Backsound();
+
+    this.overlay?.showFaintRedOverlay(
+      GameplayScene.faintRedOverlayHoldMs,
+      GameplayScene.faintRedOverlayFadeMs,
+      GameplayScene.faintRedOverlayAlpha,
+    );
+    this.cameras.main.shake(
+      GameplayScene.faintShakeMs,
+      GameplayScene.faintShakeIntensity,
+      true,
+    );
+
+    this.time.delayedCall(GameplayScene.faintRedOverlayHoldMs, () => {
+      this.overlay?.showFaintBlackout(
+        GameplayScene.faintBlackFadeMs,
+        GameplayScene.faintBlackoutAlpha,
+      );
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        this.time.delayedCall(GameplayScene.faintBlackHoldMs, () => {
+          this.silentPauseActive = false;
+          this.startFreeDialogue(dialogueId, () => {
+            this.silentPauseActive = true;
+            this.time.delayedCall(GameplayScene.faintAfterDialoguePauseMs, () => {
+              this.scene.start("FinalMemoryScene");
+            });
           });
-          this.cameras.main.fadeIn(GameplayScene.blackFadeDialogueMs, 0, 0, 0);
         });
       });
+      this.cameras.main.fadeOut(GameplayScene.faintBlackFadeMs, 0, 0, 0);
     });
-
-    this.cameras.main.fadeOut(GameplayScene.blackFadeDialogueMs, 0, 0, 0);
   }
 
   private scheduleZulfanMessageEvent(onComplete: () => void): void {
@@ -1861,6 +2039,22 @@ export class GameplayScene extends Phaser.Scene {
 
   private playChickenSound(): void {
     this.sound.play("sfx.environment.chicken", { volume: 0.78 });
+  }
+
+  private startPhase1Backsound(): void {
+    if (!this.phase1Backsound || this.phase1Backsound.isPlaying) {
+      return;
+    }
+
+    this.phase1Backsound.play();
+  }
+
+  private stopPhase1Backsound(): void {
+    if (!this.phase1Backsound?.isPlaying) {
+      return;
+    }
+
+    this.phase1Backsound.stop();
   }
 
   private playDoorRustleSound(onComplete: () => void): void {

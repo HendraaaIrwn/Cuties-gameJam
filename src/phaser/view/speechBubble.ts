@@ -41,6 +41,7 @@ const TAIL_WIDTH = 16;
 const TAIL_HEIGHT = 12;
 const SPEAKER_GAP = 4;
 const CORNER_RADIUS = 2;
+const GAME_FONT_FAMILY = '"Pixelify Sans", system-ui, sans-serif';
 
 export function createSpeechBubble(
   scene: Phaser.Scene,
@@ -56,7 +57,7 @@ export function createSpeechBubble(
   const graphics = scene.add.graphics();
 
   const textStyle: Phaser.Types.GameObjects.Text.TextStyle = {
-    fontFamily: '"Trebuchet MS", "Segoe UI", system-ui, sans-serif',
+    fontFamily: GAME_FONT_FAMILY,
     fontSize: "13px",
     color: theme.textColor,
     wordWrap: { width: maxWidth - PADDING_X * 2, useAdvancedWrap: true },
@@ -77,7 +78,7 @@ export function createSpeechBubble(
   if (options.speaker) {
     speakerText = scene
       .add.text(0, 0, options.speaker, {
-        fontFamily: '"Trebuchet MS", "Segoe UI", system-ui, sans-serif',
+        fontFamily: GAME_FONT_FAMILY,
         fontSize: "11px",
         fontStyle: "bold",
         color: theme.speakerColor,

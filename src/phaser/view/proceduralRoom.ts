@@ -41,7 +41,10 @@ const bedroomInteractableIds = new Set(["bed", "chair", "door", "laptop", "wardr
 const bedroomLayerName = "bedroom-room-layer";
 const bedroomClockLayerName = "bedroom-clock-layer";
 const bedroomNightOverlayName = "bedroom-night-overlay";
+const bedroomViewportWidth = 960;
+const bedroomViewportHeight = 540;
 const bedroomScale = 7.5;
+const bedroomBaseOffsetY = 0;
 const bedroomOffsetY = 30;
 export const bedroomNightOverlayDepth = 510;
 export const bedroomPlayerDepth = 620;
@@ -152,10 +155,10 @@ export function createBedroomNightOverlay(
   alpha: number,
 ): Phaser.GameObjects.Image {
   return scene.add
-    .image(0, bedroomOffsetY, "room.bedroom.nightOverlay")
+    .image(0, 0, "room.bedroom.nightOverlay")
     .setName(bedroomNightOverlayName)
     .setOrigin(0, 0)
-    .setScale(bedroomScale)
+    .setDisplaySize(bedroomViewportWidth, bedroomViewportHeight)
     .setDepth(bedroomNightOverlayDepth)
     .setAlpha(alpha)
     .setBlendMode(Phaser.BlendModes.MULTIPLY);
@@ -195,7 +198,7 @@ export function createInteractableView(
 
   const label = scene.add
     .text(0, labelY, interactable.label, {
-      fontFamily: "monospace",
+      fontFamily: '"Pixelify Sans", system-ui, sans-serif',
       fontSize: "12px",
       color: "#fff6cf",
       backgroundColor: "rgba(14,16,24,0.72)",
@@ -241,7 +244,7 @@ function scalePieces(pieces: Phaser.GameObjects.GameObject[], scale: number): vo
 function drawBedroom(scene: Phaser.Scene): void {
   bedroomLayerKeys.forEach((key) => {
     scene.add
-      .image(0, bedroomOffsetY, key)
+      .image(0, key === "room.bedroom.base" ? bedroomBaseOffsetY : bedroomOffsetY, key)
       .setName(key === "room.bedroom.clock" ? bedroomClockLayerName : bedroomLayerName)
       .setOrigin(0, 0)
       .setScale(bedroomScale)
