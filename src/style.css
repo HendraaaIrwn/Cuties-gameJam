@@ -1,9 +1,16 @@
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("/assets/fonts/PixelifySans-VariableFont_wght.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
   color: #eef0d8;
   background: #10131b;
   font-family:
-    "Trebuchet MS",
-    "Segoe UI",
+    "Pixelify Sans",
     system-ui,
     sans-serif;
   font-synthesis: none;
@@ -100,7 +107,7 @@ button {
 h1 {
   margin: 0;
   color: #fff6cf;
-  font-size: clamp(44px, 8vw, 86px);
+  font-size: clamp(88px, 16vw, 172px);
   line-height: 0.96;
 }
 
@@ -209,6 +216,7 @@ h1 {
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 40;
   padding: 18px;
   pointer-events: auto;
 }
@@ -252,7 +260,7 @@ h1 {
   display: flex;
   gap: 9px;
   color: #ffffff;
-  font-family: "Arial Black", Impact, monospace;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
   font-size: 25px;
   line-height: 1;
   text-shadow:
@@ -297,7 +305,7 @@ h1 {
   grid-row: 1;
   align-self: end;
   color: #ffffff;
-  font-family: "Arial Black", Impact, monospace;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
   font-size: 44px;
   line-height: 1;
   text-align: center;
@@ -324,7 +332,7 @@ h1 {
   width: 42px;
   height: 46px;
   color: #ffffff;
-  font-family: "Arial Black", Impact, monospace;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
   font-size: 50px;
   font-weight: 900;
   line-height: 42px;
@@ -384,7 +392,7 @@ h1 {
   gap: 14px;
   margin-top: 2px;
   color: rgba(255, 255, 255, 0.82);
-  font-family: monospace;
+  font-family: "Pixelify Sans", system-ui, sans-serif;
   font-size: 11px;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -443,6 +451,13 @@ h1 {
   line-height: 1.55;
 }
 
+.dialogue-content p.dialogue-target-money {
+  color: #fff6cf;
+  font-size: clamp(19px, 2.7vw, 28px);
+  font-weight: 900;
+  line-height: 1.18;
+}
+
 .dialogue-content p.typewriter-active::after {
   display: inline-block;
   width: 0.58em;
@@ -478,6 +493,7 @@ h1 {
 .ending-layer {
   position: absolute;
   inset: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -509,6 +525,81 @@ h1 {
 
 .ending-score {
   color: #f7a889 !important;
+}
+
+.faint-blackout-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 32;
+  pointer-events: none;
+  background: rgba(0, 0, 0, var(--faint-blackout-alpha, 0.96));
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+.faint-blackout-overlay.is-visible {
+  opacity: 1;
+}
+
+.faint-red-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.08) 0 2px,
+      transparent 2px 6px
+    ),
+    rgba(168, 0, 0, var(--faint-red-alpha, 0.58));
+  image-rendering: pixelated;
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: steps(4, end);
+}
+
+.faint-red-overlay.is-visible {
+  opacity: 1;
+}
+
+.final-memory-prompt {
+  border: 4px solid #000000;
+  background: #ffffff;
+  box-shadow:
+    5px 5px 0 rgba(0, 0, 0, 0.2),
+    inset 0 0 0 2px #ffffff;
+  color: #000000;
+  text-shadow: none;
+}
+
+.final-memory-dialogue-layer .dialogue-box {
+  border: 4px solid #000000;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 7px 7px 0 rgba(0, 0, 0, 0.18);
+  color: #000000;
+}
+
+.final-memory-dialogue-layer .portrait {
+  border: 3px solid #000000;
+  background-color: #ffffff;
+  filter: grayscale(1) contrast(1.15);
+}
+
+.final-memory-dialogue-layer .speaker,
+.final-memory-dialogue-layer .dialogue-content p,
+.final-memory-dialogue-layer .dialogue-content p.typewriter-active::after {
+  color: #000000;
+  text-shadow: none;
+}
+
+.final-memory-dialogue-layer .continue-button,
+.final-memory-dialogue-layer .choice-button {
+  border: 3px solid #000000;
+  background: #ffffff;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+  color: #000000;
 }
 
 @media (max-width: 640px) {

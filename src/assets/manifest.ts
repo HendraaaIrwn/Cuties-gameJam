@@ -24,6 +24,7 @@ export const assetManifest: AssetManifest = {
   rooms: {
     "room.bedroom": "procedural/bedroom",
     "room.bedroom.base": "/assets/environment/bedroom/base.png",
+    "room.bedroom.laptopBlueLight": "/assets/environment/bedroom/blue-screen-effect.png",
     "room.bedroom.bed": "/assets/environment/bedroom/bed.png",
     "room.bedroom.chair": "/assets/environment/bedroom/chair.png",
     "room.bedroom.clock": "/assets/environment/bedroom/clock.png",
@@ -38,6 +39,11 @@ export const assetManifest: AssetManifest = {
     "room.bedroom.wardrobe": "/assets/environment/bedroom/wardrobe.png",
     "room.street": "procedural/street",
     "room.replay": "procedural/replay",
+  },
+  endings: {
+    "ending.family": "/assets/endings/family-end.png",
+    "ending.friends": "/assets/endings/friends-end.png",
+    "ending.praying": "/assets/endings/praying-end.png",
   },
   ui: {
     "ui.textbox": "dom/textbox",
@@ -56,5 +62,7 @@ export const assetManifest: AssetManifest = {
     "sfx.prayer.adzan": "/assets/audio/sound-adzan.wav",
     "sfx.environment.cricket": "/assets/audio/cricket.mp3",
     "sfx.environment.chicken": "/assets/audio/chicken.mp3",
+    "bgm.finalMemory": "/assets/audio/final-memory-sound.mp3",
+    "bgm.phase1": "/assets/audio/backsound-phase1.mp3",
   },
 };

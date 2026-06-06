@@ -5,7 +5,8 @@ export class BootScene extends Phaser.Scene {
     super("BootScene");
   }
 
-  create(): void {
+  async create(): Promise<void> {
+    await document.fonts.load('16px "Pixelify Sans"').catch(() => undefined);
     this.scene.start("MenuScene");
   }
 }

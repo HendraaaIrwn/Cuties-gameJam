@@ -17,8 +17,13 @@ export class NarrativeOverlay {
   private dialogueId: string | null = null;
   private callbacks: DialogueCallbacks | null = null;
   private typewriterTimer: number | null = null;
+  private typewriterText: string | null = null;
+  private typewriterElement: HTMLElement | null = null;
+  private faintOverlayTimer: number | null = null;
+  private faintBlackoutTimer: number | null = null;
+  private enterKeyHeld = false;
   private readonly handleEnterKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== "Enter" || event.repeat) {
+    if (event.key !== "Enter") {
       return;
     }
 
@@ -34,8 +39,27 @@ export class NarrativeOverlay {
     }
 
     event.preventDefault();
+    event.stopPropagation();
+    if (this.enterKeyHeld || event.repeat) {
+      return;
+    }
+
+    this.enterKeyHeld = true;
+    if (this.completeTypewriter()) {
+      return;
+    }
+
+    if (this.handleDialogueButton(targetButton)) {
+      return;
+    }
+
     targetButton.focus({ preventScroll: true });
     targetButton.click();
+  };
+  private readonly handleEnterKeyUp = (event: KeyboardEvent): void => {
+    if (event.key === "Enter") {
+      this.enterKeyHeld = false;
+    }
   };
 
   constructor(rootId = "ui-root") {
@@ -46,6 +70,7 @@ export class NarrativeOverlay {
 
     this.root = root;
     window.addEventListener("keydown", this.handleEnterKeyDown);
+    window.addEventListener("keyup", this.handleEnterKeyUp);
   }
 
   showTitle(onStart: () => void): void {
@@ -53,8 +78,8 @@ export class NarrativeOverlay {
       <section class="title-screen">
         <div class="title-copy">
           <p class="eyebrow">Walking Sim / Visual Novel</p>
-          <h1>Chained by Other People's Shadows</h1>
-          <p class="tagline">Toxic productivity, fear of falling behind, and a life that only feels meaningful once it becomes a recording.</p>
+          <h1>ALMOST THERE</h1>
+          <p class="tagline">Beta Version</p>
           <button class="primary-action" type="button">Start</button>
         </div>
       </section>
@@ -74,6 +99,15 @@ export class NarrativeOverlay {
       <section class="arrow-minigame-layer hidden" data-arrow-minigame></section>
       <section class="dialogue-layer hidden" data-dialogue></section>
       <section class="ending-layer hidden" data-ending></section>
+      <section class="faint-blackout-overlay hidden" data-faint-blackout-overlay></section>
+      <section class="faint-red-overlay hidden" data-faint-red-overlay></section>
+    `;
+  }
+
+  mountDialogueOnly(): void {
+    this.root.innerHTML = `
+      <section class="interaction-prompt final-memory-prompt hidden" data-prompt></section>
+      <section class="dialogue-layer final-memory-dialogue-layer hidden" data-dialogue></section>
     `;
   }
 
@@ -200,6 +234,63 @@ export class NarrativeOverlay {
     layer.innerHTML = "";
   }
 
+  showFaintRedOverlay(holdMs: number, fadeMs: number, alpha: number): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-faint-red-overlay]");
+    if (!layer) {
+      return;
+    }
+
+    this.clearFaintOverlayTimer();
+    layer.style.setProperty("--faint-red-alpha", String(alpha));
+    layer.style.transitionDuration = `${fadeMs}ms`;
+    layer.classList.remove("hidden");
+    layer.classList.remove("is-visible");
+
+    window.requestAnimationFrame(() => {
+      layer.classList.add("is-visible");
+    });
+
+    this.faintOverlayTimer = window.setTimeout(() => {
+      layer.classList.remove("is-visible");
+      this.faintOverlayTimer = window.setTimeout(() => {
+        layer.classList.add("hidden");
+        this.faintOverlayTimer = null;
+      }, fadeMs);
+    }, holdMs);
+  }
+
+  showFaintBlackout(fadeMs: number, alpha: number): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-faint-blackout-overlay]");
+    if (!layer) {
+      return;
+    }
+
+    this.clearFaintBlackoutTimer();
+    layer.style.setProperty("--faint-blackout-alpha", String(alpha));
+    layer.style.transitionDuration = `${fadeMs}ms`;
+    layer.classList.remove("hidden");
+    layer.classList.remove("is-visible");
+
+    window.requestAnimationFrame(() => {
+      layer.classList.add("is-visible");
+    });
+  }
+
+  hideFaintBlackout(fadeMs: number): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-faint-blackout-overlay]");
+    if (!layer) {
+      return;
+    }
+
+    this.clearFaintBlackoutTimer();
+    layer.style.transitionDuration = `${fadeMs}ms`;
+    layer.classList.remove("is-visible");
+    this.faintBlackoutTimer = window.setTimeout(() => {
+      layer.classList.add("hidden");
+      this.faintBlackoutTimer = null;
+    }, fadeMs);
+  }
+
   showTutorialGuidance(message: string, onComplete: () => void): void {
     const layer = this.root.querySelector<HTMLElement>("[data-tutorial-guidance]");
     if (!layer) {
@@ -263,8 +354,25 @@ export class NarrativeOverlay {
 
   destroy(): void {
     this.clearTypewriter();
+    this.clearFaintOverlayTimer();
+    this.clearFaintBlackoutTimer();
     window.removeEventListener("keydown", this.handleEnterKeyDown);
+    window.removeEventListener("keyup", this.handleEnterKeyUp);
     this.root.innerHTML = "";
+  }
+
+  private clearFaintOverlayTimer(): void {
+    if (this.faintOverlayTimer !== null) {
+      window.clearTimeout(this.faintOverlayTimer);
+      this.faintOverlayTimer = null;
+    }
+  }
+
+  private clearFaintBlackoutTimer(): void {
+    if (this.faintBlackoutTimer !== null) {
+      window.clearTimeout(this.faintBlackoutTimer);
+      this.faintBlackoutTimer = null;
+    }
   }
 
   private renderDialogue(): void {
@@ -285,7 +393,7 @@ export class NarrativeOverlay {
     this.clearTypewriter();
     layer.classList.remove("hidden");
     layer.innerHTML = this.dialogueMarkup(node);
-    this.startTypewriter(node.text);
+    this.startTypewriter(layer, node.text);
 
     if (node.choices?.length) {
       const choiceHost = layer.querySelector("[data-choices]");
@@ -294,11 +402,7 @@ export class NarrativeOverlay {
         button.className = "choice-button";
         button.type = "button";
         button.textContent = choice.label;
-        button.addEventListener("click", () => {
-          this.callbacks?.onChoice(choice);
-          this.dialogueId = choice.next ?? null;
-          this.dialogueId ? this.renderDialogue() : this.finishDialogue();
-        });
+        button.addEventListener("click", () => this.chooseDialogueOption(choice));
         choiceHost?.appendChild(button);
       }
       return;
@@ -308,8 +412,56 @@ export class NarrativeOverlay {
   }
 
   private advanceDialogue(node: DialogueNode): void {
+    if (this.completeTypewriter()) {
+      return;
+    }
+
     this.dialogueId = node.next ?? null;
     this.dialogueId ? this.renderDialogue() : this.finishDialogue();
+  }
+
+  private chooseDialogueOption(choice: Choice): void {
+    if (this.completeTypewriter()) {
+      return;
+    }
+
+    this.callbacks?.onChoice(choice);
+    this.dialogueId = choice.next ?? null;
+    this.dialogueId ? this.renderDialogue() : this.finishDialogue();
+  }
+
+  private handleDialogueButton(button: HTMLButtonElement): boolean {
+    if (!button.closest("[data-dialogue]")) {
+      return false;
+    }
+
+    button.focus({ preventScroll: true });
+    const node = this.getCurrentDialogueNode();
+    if (!node) {
+      return true;
+    }
+
+    if (button.classList.contains("continue-button")) {
+      this.advanceDialogue(node);
+      return true;
+    }
+
+    const choiceButtons = [...(button.parentElement?.children ?? [])];
+    const choiceIndex = choiceButtons.indexOf(button);
+    const choice = choiceIndex >= 0 ? node.choices?.[choiceIndex] : undefined;
+    if (choice) {
+      this.chooseDialogueOption(choice);
+    }
+
+    return true;
+  }
+
+  private getCurrentDialogueNode(): DialogueNode | null {
+    if (!this.dialogueId) {
+      return null;
+    }
+
+    return dialogues[this.dialogueId] ?? null;
   }
 
   private dialogueMarkup(node: DialogueNode): string {
@@ -318,7 +470,7 @@ export class NarrativeOverlay {
         <div class="portrait ${node.portraitKey ?? "narrator"}"></div>
         <div class="dialogue-content">
           <div class="speaker">${node.speaker}</div>
-          <p data-dialogue-text></p>
+          <p class="${node.textClass ?? ""}" data-dialogue-text></p>
           <div class="dialogue-actions" data-choices>
             ${node.choices?.length ? "" : '<button class="continue-button" type="button">Continue</button>'}
           </div>
@@ -418,14 +570,16 @@ export class NarrativeOverlay {
     `;
   }
 
-  private startTypewriter(text: string): void {
-    const textElement = this.root.querySelector<HTMLElement>("[data-dialogue-text]");
+  private startTypewriter(layer: HTMLElement, text: string): void {
+    const textElement = layer.querySelector<HTMLElement>("[data-dialogue-text]");
     if (!textElement) {
       return;
     }
 
     textElement.textContent = "";
     textElement.classList.add("typewriter-active");
+    this.typewriterText = text;
+    this.typewriterElement = textElement;
 
     let index = 0;
     this.typewriterTimer = window.setInterval(() => {
@@ -439,10 +593,27 @@ export class NarrativeOverlay {
     }, 22);
   }
 
+  private completeTypewriter(): boolean {
+    if (this.typewriterTimer === null || this.typewriterText === null) {
+      return false;
+    }
+
+    const text = this.typewriterText;
+    const textElement = this.typewriterElement;
+    this.clearTypewriter();
+    if (textElement) {
+      textElement.textContent = text;
+      textElement.classList.remove("typewriter-active");
+    }
+    return true;
+  }
+
   private clearTypewriter(): void {
     if (this.typewriterTimer !== null) {
       window.clearInterval(this.typewriterTimer);
       this.typewriterTimer = null;
     }
+    this.typewriterText = null;
+    this.typewriterElement = null;
   }
 }
