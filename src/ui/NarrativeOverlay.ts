@@ -84,7 +84,6 @@ export class NarrativeOverlay {
             <button class="primary-action" type="button" data-menu-start>Start</button>
           </div>
           <div class="menu-status" aria-label="Story preview">
-            <p>Experience the pressure of keeping up with others, the refusal to fall behind, and the replaying of moments that define us.</p>
           </div>
         </div>
       </section>

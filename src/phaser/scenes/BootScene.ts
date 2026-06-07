@@ -6,7 +6,11 @@ export class BootScene extends Phaser.Scene {
   }
 
   async create(): Promise<void> {
-    await document.fonts.load('16px "Pixelify Sans"').catch(() => undefined);
+    await Promise.all([
+      document.fonts.load('400 16px "Pixelify Sans"'),
+      document.fonts.load('900 32px "Pixelify Sans"'),
+      document.fonts.ready,
+    ]).catch(() => undefined);
     this.scene.start("MenuScene");
   }
 }
