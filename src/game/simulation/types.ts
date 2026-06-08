@@ -15,12 +15,26 @@ export interface ArrowMinigameState {
   mistakes: number;
 }
 
+export interface TypingMinigameState {
+  words: string[];
+  currentWordIndex: number;
+  typedSoFar: string;
+  loopsCompleted: number;
+  loopsRequired: number;
+  timeRemainingMs: number;
+  totalTimeMs: number;
+  attempts: number;
+  mistakes: number;
+  stageLabel: string;
+}
+
 export interface GameState {
   phase: StoryPhase;
   currentRoom: RoomId;
   storyFlags: Record<string, boolean>;
   completedInteractions: string[];
   arrowMinigame: ArrowMinigameState | null;
+  typingMinigame: TypingMinigameState | null;
   money: number;
 }
 

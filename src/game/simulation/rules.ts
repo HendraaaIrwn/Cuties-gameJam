@@ -1,4 +1,5 @@
 import { rooms } from "../content/rooms";
+import { stageForMoney, typingWordPools } from "../content/typingWords";
 import type {
   ArrowDirection,
   ArrowMinigameState,
@@ -6,6 +7,7 @@ import type {
   GameState,
   Interactable,
   RoomDefinition,
+  TypingMinigameState,
 } from "./types";
 
 const buildUpRequired: string[] = [];
@@ -13,11 +15,15 @@ const actionsRequired = ["friend", "parent-call", "work-desk"];
 const replayRequired = ["replay-friend", "replay-parent", "final-question"];
 const arrowDirections: ArrowDirection[] = ["up", "down", "left", "right"];
 const deskSequenceLength = 6;
-const deskLoopCount = 3;
+const deskLoopCount = 1;
 const deskTimeLimitMs = 6000;
 const deskTimeStepMs = 2000;
 const deskMinimumTimeMs = 3600;
 const workRewardMoney = 25;
+const typingWordsPerLoop = 5;
+const typingTimeLimitMs = 12000;
+const typingTimeStepMs = 1500;
+const typingMinimumTimeMs = 7000;
 
 export function hasFlags(state: GameState, flags: string[] = []): boolean {
   return flags.every((flag) => state.storyFlags[flag]);
@@ -55,6 +61,7 @@ export function applyChoice(state: GameState, choice: Choice): GameState {
     storyFlags: { ...state.storyFlags },
     completedInteractions: [...state.completedInteractions],
     arrowMinigame: state.arrowMinigame,
+    typingMinigame: state.typingMinigame,
   };
 
   for (const flag of choice.setFlags ?? []) {
@@ -97,8 +104,176 @@ export function startDeskMinigame(state: GameState): GameState {
   return {
     ...state,
     storyFlags: { ...state.storyFlags, workingAtDesk: true },
-    arrowMinigame: createArrowMinigame(),
+    typingMinigame: createTypingMinigame(state.money),
   };
+}
+
+export function createTypingMinigame(currentMoney: number, attempts = 1, mistakes = 0): TypingMinigameState {
+  const stage = stageForMoney(currentMoney);
+  const pool = typingWordPools[stage];
+  const totalTimeMs = getTypingLoopTimeLimit(0);
+
+  return {
+    words: pickTypingWords(pool, typingWordsPerLoop),
+    currentWordIndex: 0,
+    typedSoFar: "",
+    loopsCompleted: 0,
+    loopsRequired: deskLoopCount,
+    timeRemainingMs: totalTimeMs,
+    totalTimeMs,
+    attempts,
+    mistakes,
+    stageLabel: stage,
+  };
+}
+
+export function updateTypingMinigame(state: GameState, elapsedMs: number): GameState {
+  if (!state.typingMinigame) {
+    return state;
+  }
+
+  const timeRemainingMs = Math.max(0, state.typingMinigame.timeRemainingMs - elapsedMs);
+  if (timeRemainingMs > 0) {
+    return {
+      ...state,
+      typingMinigame: {
+        ...state.typingMinigame,
+        timeRemainingMs,
+      },
+    };
+  }
+
+  return {
+    ...state,
+    typingMinigame: createTypingMinigame(
+      state.money,
+      state.typingMinigame.attempts + 1,
+      state.typingMinigame.mistakes + 1,
+    ),
+  };
+}
+
+export function typeCharacter(state: GameState, char: string): GameState {
+  if (!state.typingMinigame) {
+    return state;
+  }
+
+  const mg = state.typingMinigame;
+  const currentWord = mg.words[mg.currentWordIndex];
+  const nextTyped = mg.typedSoFar + char.toLowerCase();
+
+  if (currentWord.startsWith(nextTyped)) {
+    if (nextTyped === currentWord) {
+      return advanceTypingWord(state);
+    }
+
+    return {
+      ...state,
+      typingMinigame: {
+        ...mg,
+        typedSoFar: nextTyped,
+      },
+    };
+  }
+
+  return {
+    ...state,
+    typingMinigame: {
+      ...mg,
+      mistakes: mg.mistakes + 1,
+    },
+  };
+}
+
+export function typeBackspace(state: GameState): GameState {
+  if (!state.typingMinigame || state.typingMinigame.typedSoFar === "") {
+    return state;
+  }
+
+  return {
+    ...state,
+    typingMinigame: {
+      ...state.typingMinigame,
+      typedSoFar: state.typingMinigame.typedSoFar.slice(0, -1),
+    },
+  };
+}
+
+export function isTypingMinigameComplete(state: GameState): boolean {
+  return Boolean(
+    state.typingMinigame &&
+      state.typingMinigame.loopsCompleted >= state.typingMinigame.loopsRequired,
+  );
+}
+
+export function clearTypingMinigame(state: GameState): GameState {
+  return {
+    ...state,
+    storyFlags: { ...state.storyFlags, workingAtDesk: false, completedDeskMinigame: true },
+    typingMinigame: null,
+  };
+}
+
+function advanceTypingWord(state: GameState): GameState {
+  if (!state.typingMinigame) {
+    return state;
+  }
+
+  const mg = state.typingMinigame;
+  const nextWordIndex = mg.currentWordIndex + 1;
+
+  if (nextWordIndex < mg.words.length) {
+    return {
+      ...state,
+      typingMinigame: {
+        ...mg,
+        currentWordIndex: nextWordIndex,
+        typedSoFar: "",
+      },
+    };
+  }
+
+  const loopsCompleted = mg.loopsCompleted + 1;
+  if (loopsCompleted >= mg.loopsRequired) {
+    return {
+      ...state,
+      typingMinigame: {
+        ...mg,
+        currentWordIndex: mg.words.length,
+        typedSoFar: "",
+        loopsCompleted,
+      },
+    };
+  }
+
+  const stage = stageForMoney(state.money);
+  const pool = typingWordPools[stage];
+  const totalTimeMs = getTypingLoopTimeLimit(loopsCompleted);
+
+  return {
+    ...state,
+    typingMinigame: {
+      words: pickTypingWords(pool, typingWordsPerLoop),
+      currentWordIndex: 0,
+      typedSoFar: "",
+      loopsCompleted,
+      loopsRequired: mg.loopsRequired,
+      timeRemainingMs: totalTimeMs,
+      totalTimeMs,
+      attempts: mg.attempts,
+      mistakes: mg.mistakes,
+      stageLabel: stage,
+    },
+  };
+}
+
+function pickTypingWords(pool: string[], count: number): string[] {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
+}
+
+function getTypingLoopTimeLimit(loopsCompleted: number): number {
+  return Math.max(typingMinimumTimeMs, typingTimeLimitMs - loopsCompleted * typingTimeStepMs);
 }
 
 export function updateArrowMinigame(state: GameState, elapsedMs: number): GameState {

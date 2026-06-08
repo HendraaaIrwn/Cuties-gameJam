@@ -5,18 +5,19 @@ import { createInitialState } from "../../game/simulation/state";
 import {
   applyChoice,
   canInteract,
-  clearArrowMinigame,
+  clearTypingMinigame,
   completeInteraction,
   earnMoney,
   getCurrentRoom,
   getVisibleInteractables,
-  isArrowMinigameComplete,
-  pressArrowInput,
+  isTypingMinigameComplete,
   shouldStartDeskMinigame,
   startDeskMinigame,
-  updateArrowMinigame,
+  typeBackspace,
+  typeCharacter,
+  updateTypingMinigame,
 } from "../../game/simulation/rules";
-import type { ArrowDirection, GameState, Interactable } from "../../game/simulation/types";
+import type { GameState, Interactable } from "../../game/simulation/types";
 import { NarrativeOverlay } from "../../ui/NarrativeOverlay";
 import {
   createIconNotificationBubble,
@@ -224,7 +225,7 @@ export class GameplayScene extends Phaser.Scene {
       this.advanceMonologueBubble();
     }
 
-    if (this.state.arrowMinigame) {
+    if (this.state.typingMinigame) {
       this.stopFootsteps();
       this.updateDeskMinigame(delta);
       return;
@@ -301,7 +302,7 @@ export class GameplayScene extends Phaser.Scene {
         return;
       }
 
-      if (this.state.arrowMinigame) {
+      if (this.state.typingMinigame) {
         return;
       }
 
@@ -318,6 +319,25 @@ export class GameplayScene extends Phaser.Scene {
 
       this.pendingInteractableId = null;
       this.moveTarget = new Phaser.Math.Vector2(pointer.worldX, this.getMoveTargetY(pointer.worldY));
+    });
+
+    this.input.keyboard?.on("keydown", (event: KeyboardEvent) => {
+      if (!this.state.typingMinigame) {
+        return;
+      }
+
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        this.playKeyboardTapSound();
+        this.state = typeBackspace(this.state);
+        return;
+      }
+
+      if (event.key.length === 1 && /[a-zA-Z]/.test(event.key)) {
+        event.preventDefault();
+        this.playKeyboardTapSound();
+        this.state = typeCharacter(this.state, event.key);
+      }
     });
   }
 
@@ -357,6 +377,7 @@ export class GameplayScene extends Phaser.Scene {
     this.overlay?.updateHud(this.state, room.title);
     this.overlay?.setPrompt(null);
     this.overlay?.hideArrowMinigame();
+    this.overlay?.hideTypingMinigame();
   }
 
   private startDayNightCycle(): void {
@@ -786,7 +807,7 @@ export class GameplayScene extends Phaser.Scene {
 
   private showOpeningArrowTutorial(): void {
     this.dialogueActive = true;
-    this.overlay?.showTutorialGuidance("Click the corresponding arrow to progress.", () => {
+    this.overlay?.showPlainTutorialGuidance("Type the words shown on screen using your keyboard.", () => {
       this.dialogueActive = false;
       this.startOpeningDeskMinigame();
     });
@@ -1027,40 +1048,22 @@ export class GameplayScene extends Phaser.Scene {
     }
 
     this.overlay?.setPrompt(null);
-    if (this.state.arrowMinigame) {
-      this.overlay?.showArrowMinigame(this.state.arrowMinigame);
+    if (this.state.typingMinigame) {
+      this.overlay?.showTypingMinigame(this.state.typingMinigame);
     }
   }
 
   private updateDeskMinigame(delta: number): void {
-    const pressed = this.readPressedArrow();
-    if (pressed) {
-      this.playKeyboardTapSound();
-      this.state = pressArrowInput(this.state, pressed);
-    } else {
-      this.state = updateArrowMinigame(this.state, delta);
-    }
+    this.state = updateTypingMinigame(this.state, delta);
 
-    if (isArrowMinigameComplete(this.state)) {
+    if (isTypingMinigameComplete(this.state)) {
       this.finishDeskWork();
       return;
     }
 
-    if (this.state.arrowMinigame) {
-      this.overlay?.updateArrowMinigame(this.state.arrowMinigame);
+    if (this.state.typingMinigame) {
+      this.overlay?.updateTypingMinigame(this.state.typingMinigame);
     }
-  }
-
-  private readPressedArrow(): ArrowDirection | null {
-    if (!this.cursors) {
-      return null;
-    }
-
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) return "up";
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) return "down";
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) return "left";
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.right)) return "right";
-    return null;
   }
 
   private finishDeskWork(): void {
@@ -1069,9 +1072,9 @@ export class GameplayScene extends Phaser.Scene {
       return;
     }
 
-    this.overlay?.hideArrowMinigame();
+    this.overlay?.hideTypingMinigame();
     this.hideLaptopBlueLight();
-    this.state = clearArrowMinigame(this.state);
+    this.state = clearTypingMinigame(this.state);
     let shouldShowFirstWorkRewardGuidance = false;
     let rewardDialogueId: string | null = null;
     let shouldScheduleParentMessage = false;

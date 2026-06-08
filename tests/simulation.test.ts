@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { rooms } from "../src/game/content/rooms";
 import {
   applyChoice,
-  clearArrowMinigame,
+  clearTypingMinigame,
   completeInteraction,
   earnMoney,
   getVisibleInteractables,
-  isArrowMinigameComplete,
-  pressArrowInput,
+  isTypingMinigameComplete,
   shouldStartDeskMinigame,
   startDeskMinigame,
-  updateArrowMinigame,
+  typeCharacter,
+  updateTypingMinigame,
 } from "../src/game/simulation/rules";
 import { createInitialState } from "../src/game/simulation/state";
 import type { GameState } from "../src/game/simulation/types";
@@ -125,7 +125,7 @@ describe("story simulation", () => {
     expect(shouldStartDeskMinigame(bed)).toBe(false);
   });
 
-  it("keeps the desk interaction incomplete while the arrow minigame is running", () => {
+  it("keeps the desk interaction incomplete while the typing minigame is running", () => {
     const state = startDeskMinigame({
       ...createInitialState(),
       phase: "actions",
@@ -138,77 +138,72 @@ describe("story simulation", () => {
 
     expect(state.storyFlags.workingAtDesk).toBe(true);
     expect(state.completedInteractions).not.toContain("work-desk");
-    expect(state.arrowMinigame?.sequence).toHaveLength(6);
-    expect(state.arrowMinigame?.loopsRequired).toBe(3);
-    expect(state.arrowMinigame?.loopsCompleted).toBe(0);
+    expect(state.typingMinigame?.words).toHaveLength(5);
+    expect(state.typingMinigame?.loopsRequired).toBe(1);
+    expect(state.typingMinigame?.loopsCompleted).toBe(0);
     expect(state.money).toBe(0);
   });
 
   it("adds $25 after completed laptop work is paid", () => {
     let state = startDeskMinigame(createInitialState());
 
-    while (!isArrowMinigameComplete(state)) {
-      for (const direction of state.arrowMinigame?.sequence ?? []) {
-        state = pressArrowInput(state, direction);
+    while (!isTypingMinigameComplete(state)) {
+      const words = state.typingMinigame?.words ?? [];
+      for (const word of words) {
+        for (const char of word) {
+          state = typeCharacter(state, char);
+        }
       }
     }
 
-    state = clearArrowMinigame(state);
+    state = clearTypingMinigame(state);
     state = earnMoney(state);
 
-    expect(state.arrowMinigame).toBeNull();
+    expect(state.typingMinigame).toBeNull();
     expect(state.money).toBe(25);
   });
 
-  it("completes the arrow minigame only after three loops are pressed", () => {
+  it("completes the typing minigame after one loop is typed", () => {
     let state = startDeskMinigame({
       ...createInitialState(),
       phase: "actions",
       currentRoom: "street",
     });
 
-    const firstSequence = state.arrowMinigame?.sequence ?? [];
-    for (const direction of firstSequence) {
-      state = pressArrowInput(state, direction);
-    }
-
-    expect(state.arrowMinigame?.loopsCompleted).toBe(1);
-    expect(isArrowMinigameComplete(state)).toBe(false);
-
-    while (!isArrowMinigameComplete(state)) {
-      const sequence = state.arrowMinigame?.sequence ?? [];
-      for (const direction of sequence) {
-        state = pressArrowInput(state, direction);
+    const firstWords = state.typingMinigame?.words ?? [];
+    for (const word of firstWords) {
+      for (const char of word) {
+        state = typeCharacter(state, char);
       }
     }
 
-    expect(state.arrowMinigame?.loopsCompleted).toBe(3);
-    expect(isArrowMinigameComplete(state)).toBe(true);
-    state = clearArrowMinigame(state);
-    expect(state.arrowMinigame).toBeNull();
+    expect(state.typingMinigame?.loopsCompleted).toBe(1);
+    expect(isTypingMinigameComplete(state)).toBe(true);
+    state = clearTypingMinigame(state);
+    expect(state.typingMinigame).toBeNull();
     expect(state.storyFlags.completedDeskMinigame).toBe(true);
   });
 
-  it("shortens the timer after each completed arrow loop", () => {
+  it("completes the typing minigame in a single loop", () => {
     let state = startDeskMinigame(createInitialState());
-    const firstLoopTime = state.arrowMinigame?.totalTimeMs ?? 0;
 
-    for (const direction of state.arrowMinigame?.sequence ?? []) {
-      state = pressArrowInput(state, direction);
+    for (const word of state.typingMinigame?.words ?? []) {
+      for (const char of word) {
+        state = typeCharacter(state, char);
+      }
     }
 
-    expect(state.arrowMinigame?.loopsCompleted).toBe(1);
-    expect(state.arrowMinigame?.totalTimeMs).toBeLessThan(firstLoopTime);
-    expect(state.arrowMinigame?.timeRemainingMs).toBe(state.arrowMinigame?.totalTimeMs);
+    expect(state.typingMinigame?.loopsCompleted).toBe(1);
+    expect(isTypingMinigameComplete(state)).toBe(true);
   });
 
-  it("restarts the arrow minigame when time runs out", () => {
+  it("restarts the typing minigame when time runs out", () => {
     const state = startDeskMinigame(createInitialState());
-    const expiredState = updateArrowMinigame(state, 9000);
+    const expiredState = updateTypingMinigame(state, 12000);
 
-    expect(expiredState.arrowMinigame?.attempts).toBe(2);
-    expect(expiredState.arrowMinigame?.currentIndex).toBe(0);
-    expect(expiredState.arrowMinigame?.loopsCompleted).toBe(0);
+    expect(expiredState.typingMinigame?.attempts).toBe(2);
+    expect(expiredState.typingMinigame?.currentWordIndex).toBe(0);
+    expect(expiredState.typingMinigame?.loopsCompleted).toBe(0);
     expect(expiredState.storyFlags.workingAtDesk).toBe(true);
   });
 

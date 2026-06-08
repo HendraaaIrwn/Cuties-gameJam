@@ -1,10 +1,12 @@
 import { dialogues } from "../game/content/dialogues";
+import { careerStageLabel, type CareerStage } from "../game/content/typingWords";
 import type {
   ArrowDirection,
   ArrowMinigameState,
   Choice,
   DialogueNode,
   GameState,
+  TypingMinigameState,
 } from "../game/simulation/types";
 
 type DialogueCallbacks = {
@@ -101,6 +103,7 @@ export class NarrativeOverlay {
       <section class="interaction-prompt hidden" data-prompt></section>
       <section class="tutorial-guidance-layer hidden" data-tutorial-guidance></section>
       <section class="arrow-minigame-layer hidden" data-arrow-minigame></section>
+      <section class="typing-minigame-layer hidden" data-typing-minigame></section>
       <section class="dialogue-layer hidden" data-dialogue></section>
       <section class="ending-layer hidden" data-ending></section>
       <section class="faint-blackout-overlay hidden" data-faint-blackout-overlay></section>
@@ -230,6 +233,76 @@ export class NarrativeOverlay {
 
   hideArrowMinigame(): void {
     const layer = this.root.querySelector<HTMLElement>("[data-arrow-minigame]");
+    if (!layer) {
+      return;
+    }
+
+    layer.classList.add("hidden");
+    layer.innerHTML = "";
+  }
+
+  showTypingMinigame(minigame: TypingMinigameState): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-typing-minigame]");
+    if (!layer) {
+      return;
+    }
+
+    layer.classList.remove("hidden");
+    layer.innerHTML = this.typingMinigameMarkup(minigame);
+  }
+
+  updateTypingMinigame(minigame: TypingMinigameState): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-typing-minigame]");
+    if (!layer || layer.classList.contains("hidden")) {
+      this.showTypingMinigame(minigame);
+      return;
+    }
+
+    const progress = layer.querySelector<HTMLElement>("[data-typing-progress]");
+    const attempts = layer.querySelector<HTMLElement>("[data-typing-attempts]");
+    const loop = layer.querySelector<HTMLElement>("[data-typing-loop]");
+    const stageEl = layer.querySelector<HTMLElement>("[data-typing-stage]");
+    const wordsEl = layer.querySelector<HTMLElement>("[data-typing-words]");
+    const typedEl = layer.querySelector<HTMLElement>("[data-typing-typed]");
+
+    const timeRatio = minigame.timeRemainingMs / minigame.totalTimeMs;
+
+    if (progress) {
+      progress.style.width = `${Math.round(timeRatio * 100)}%`;
+    }
+
+    if (attempts) {
+      attempts.textContent =
+        minigame.attempts > 1 ? `Retry ${minigame.attempts}` : "Stay focused";
+    }
+
+    if (loop) {
+      loop.textContent = `Loop ${Math.min(minigame.loopsCompleted + 1, minigame.loopsRequired)}/${minigame.loopsRequired}`;
+    }
+
+    if (stageEl) {
+      stageEl.textContent = careerStageLabel[minigame.stageLabel as CareerStage] ?? minigame.stageLabel;
+    }
+
+    if (wordsEl) {
+      wordsEl.innerHTML = minigame.words
+        .map(
+          (word, index) =>
+            `<span class="typing-word ${index < minigame.currentWordIndex ? "done" : index === minigame.currentWordIndex ? "current" : ""}" data-typing-word-index="${index}">${word}</span>`,
+        )
+        .join("");
+    }
+
+    if (typedEl && minigame.currentWordIndex < minigame.words.length) {
+      const currentWord = minigame.words[minigame.currentWordIndex];
+      const typed = minigame.typedSoFar;
+      const remaining = currentWord.slice(typed.length);
+      typedEl.innerHTML = `<span class="typing-correct">${typed}</span><span class="typing-remaining">${remaining}</span>`;
+    }
+  }
+
+  hideTypingMinigame(): void {
+    const layer = this.root.querySelector<HTMLElement>("[data-typing-minigame]");
     if (!layer) {
       return;
     }
@@ -525,6 +598,40 @@ export class NarrativeOverlay {
 
   private arrowSignature(minigame: ArrowMinigameState): string {
     return `${minigame.loopsCompleted}:${minigame.sequence.join("-")}`;
+  }
+
+  private typingMinigameMarkup(minigame: TypingMinigameState): string {
+    const timeRatio = minigame.timeRemainingMs / minigame.totalTimeMs;
+    const stageLabel = careerStageLabel[minigame.stageLabel as CareerStage] ?? minigame.stageLabel;
+    const currentWord = minigame.words[minigame.currentWordIndex] ?? "";
+    const typed = minigame.typedSoFar;
+    const remaining = currentWord.slice(typed.length);
+
+    const wordsHtml = minigame.words
+      .map(
+        (word, index) =>
+          `<span class="typing-word ${index < minigame.currentWordIndex ? "done" : index === minigame.currentWordIndex ? "current" : ""}" data-typing-word-index="${index}">${word}</span>`,
+      )
+      .join("");
+
+    return `
+      <article class="typing-minigame" aria-label="Typing work minigame">
+        <div class="typing-stage-label" data-typing-stage>${stageLabel}</div>
+        <div class="typing-word-list" data-typing-words>${wordsHtml}</div>
+        <div class="typing-input-area">
+          <span class="typing-input-display" data-typing-typed>
+            <span class="typing-correct">${typed}</span><span class="typing-remaining">${remaining}</span>
+          </span>
+        </div>
+        <div class="typing-meter" aria-hidden="true">
+          <div class="typing-meter-fill" data-typing-progress style="width: ${Math.round(timeRatio * 100)}%"></div>
+        </div>
+        <div class="typing-caption">
+          <span data-typing-loop>Loop ${Math.min(minigame.loopsCompleted + 1, minigame.loopsRequired)}/${minigame.loopsRequired}</span>
+          <span data-typing-attempts>${minigame.attempts > 1 ? `Retry ${minigame.attempts}` : "Stay focused"}</span>
+        </div>
+      </article>
+    `;
   }
 
   private finishDialogue(): void {
