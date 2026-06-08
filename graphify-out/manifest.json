@@ -1,0 +1,372 @@
+{
+  "/Users/neuhendra/Developer/cuties/package.json": {
+    "mtime": 1780484909.9727077,
+    "ast_hash": "6054fcaed6e96f109b150ad41d60ba88",
+    "semantic_hash": "6054fcaed6e96f109b150ad41d60ba88"
+  },
+  "/Users/neuhendra/Developer/cuties/src/assets/manifest.ts": {
+    "mtime": 1780803062.6916785,
+    "ast_hash": "28eb8711732196798ac6ee61158e1a3e",
+    "semantic_hash": "28eb8711732196798ac6ee61158e1a3e"
+  },
+  "/Users/neuhendra/Developer/cuties/src/game/content/dialogues.ts": {
+    "mtime": 1780769550.6886652,
+    "ast_hash": "5b5433d2e02403be8e50a4a68bd5bb4a",
+    "semantic_hash": "5b5433d2e02403be8e50a4a68bd5bb4a"
+  },
+  "/Users/neuhendra/Developer/cuties/src/game/content/rooms.ts": {
+    "mtime": 1780644238.5751603,
+    "ast_hash": "9e48598788bfdd7a7e60f21780719b56",
+    "semantic_hash": "9e48598788bfdd7a7e60f21780719b56"
+  },
+  "/Users/neuhendra/Developer/cuties/src/game/simulation/rules.ts": {
+    "mtime": 1780644238.5754685,
+    "ast_hash": "6198bd450c7b15e20232e004fdcbe137",
+    "semantic_hash": "6198bd450c7b15e20232e004fdcbe137"
+  },
+  "/Users/neuhendra/Developer/cuties/src/game/simulation/state.ts": {
+    "mtime": 1780804312.8461924,
+    "ast_hash": "f1b1a8abfa746a90efee557858384a8a",
+    "semantic_hash": "f1b1a8abfa746a90efee557858384a8a"
+  },
+  "/Users/neuhendra/Developer/cuties/src/game/simulation/types.ts": {
+    "mtime": 1780769550.6888971,
+    "ast_hash": "61f4b2bfe906aaf363cc8ce98430dba3",
+    "semantic_hash": "61f4b2bfe906aaf363cc8ce98430dba3"
+  },
+  "/Users/neuhendra/Developer/cuties/src/main.ts": {
+    "mtime": 1780769550.6890383,
+    "ast_hash": "7e1168250859fa4098b66bdde1f5cd88",
+    "semantic_hash": "7e1168250859fa4098b66bdde1f5cd88"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/scenes/BootScene.ts": {
+    "mtime": 1780769550.6893015,
+    "ast_hash": "8017a76d5f48d9cf8ef6bcab9af2a990",
+    "semantic_hash": "8017a76d5f48d9cf8ef6bcab9af2a990"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/scenes/EpilogueScene.ts": {
+    "mtime": 1780644238.5762298,
+    "ast_hash": "d7956141ce5f8d7462caa7bca9bfe047",
+    "semantic_hash": "d7956141ce5f8d7462caa7bca9bfe047"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/scenes/FinalMemoryScene.ts": {
+    "mtime": 1780775370.919854,
+    "ast_hash": "b39a69aea589b9184b6d5eb554ff101e",
+    "semantic_hash": "b39a69aea589b9184b6d5eb554ff101e"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/scenes/GameplayScene.ts": {
+    "mtime": 1780769550.6897204,
+    "ast_hash": "ba04ffedd2a7249a66067bd44081ec03",
+    "semantic_hash": "ba04ffedd2a7249a66067bd44081ec03"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/scenes/MenuScene.ts": {
+    "mtime": 1780770750.84754,
+    "ast_hash": "97c1cfb0d8da8283248b5bdd64181983",
+    "semantic_hash": "97c1cfb0d8da8283248b5bdd64181983"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/view/iconNotificationBubble.ts": {
+    "mtime": 1780644238.5770829,
+    "ast_hash": "fa6081f4846ad5f62eb7e243ce3b6b7e",
+    "semantic_hash": "fa6081f4846ad5f62eb7e243ce3b6b7e"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/view/mailBubble.ts": {
+    "mtime": 1780644238.5772324,
+    "ast_hash": "956576fc9a42c5f99bf3a748b998c393",
+    "semantic_hash": "956576fc9a42c5f99bf3a748b998c393"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/view/proceduralRoom.ts": {
+    "mtime": 1780803062.691886,
+    "ast_hash": "751980faa06e19db469685283c18a9c4",
+    "semantic_hash": "751980faa06e19db469685283c18a9c4"
+  },
+  "/Users/neuhendra/Developer/cuties/src/phaser/view/speechBubble.ts": {
+    "mtime": 1780769550.6901531,
+    "ast_hash": "3a4655e6241d3dedb50f93516101368e",
+    "semantic_hash": "3a4655e6241d3dedb50f93516101368e"
+  },
+  "/Users/neuhendra/Developer/cuties/src/ui/NarrativeOverlay.ts": {
+    "mtime": 1780806648.8692439,
+    "ast_hash": "a363685fc32d7e0d8944ab7f1525e746",
+    "semantic_hash": "a363685fc32d7e0d8944ab7f1525e746"
+  },
+  "/Users/neuhendra/Developer/cuties/src/vite-env.d.ts": {
+    "mtime": 1780484910.5352228,
+    "ast_hash": "0352474ba2918efe13895edbc3780d94",
+    "semantic_hash": "0352474ba2918efe13895edbc3780d94"
+  },
+  "/Users/neuhendra/Developer/cuties/tests/narrativeOverlay.test.ts": {
+    "mtime": 1780769550.690488,
+    "ast_hash": "1f10ac8fc6c184b5f7eb3ff1f7a29b82",
+    "semantic_hash": "1f10ac8fc6c184b5f7eb3ff1f7a29b82"
+  },
+  "/Users/neuhendra/Developer/cuties/tests/simulation.test.ts": {
+    "mtime": 1780644238.578725,
+    "ast_hash": "1c216b14c93f8cdf63a9c0d8a09c9837",
+    "semantic_hash": "1c216b14c93f8cdf63a9c0d8a09c9837"
+  },
+  "/Users/neuhendra/Developer/cuties/tsconfig.json": {
+    "mtime": 1780484910.1613576,
+    "ast_hash": "d1e9974066bf32fc0f1ae9d35779f0a2",
+    "semantic_hash": "d1e9974066bf32fc0f1ae9d35779f0a2"
+  },
+  "/Users/neuhendra/Developer/cuties/vite.config.ts": {
+    "mtime": 1780804300.1521428,
+    "ast_hash": "a2934fa7552535847e6b5936fb7f83eb",
+    "semantic_hash": "a2934fa7552535847e6b5936fb7f83eb"
+  },
+  "/Users/neuhendra/Developer/cuties/README.md": {
+    "mtime": 1780768851.826201,
+    "ast_hash": "d7c8a45ce6417ba3ae1c6a5cf7974753",
+    "semantic_hash": "d7c8a45ce6417ba3ae1c6a5cf7974753"
+  },
+  "/Users/neuhendra/Developer/cuties/index.html": {
+    "mtime": 1780484910.0649436,
+    "ast_hash": "ad373a18ce7a7d07f228dee2399e0a8c",
+    "semantic_hash": "ad373a18ce7a7d07f228dee2399e0a8c"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0000.png": {
+    "mtime": 1780505837.0411959,
+    "ast_hash": "8454ff9174c520efbabbd1956de94f9e",
+    "semantic_hash": "8454ff9174c520efbabbd1956de94f9e"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0001.png": {
+    "mtime": 1780505837.0415595,
+    "ast_hash": "bfa03fcac4915b2c3214809bba9fef5a",
+    "semantic_hash": "bfa03fcac4915b2c3214809bba9fef5a"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_00010.png": {
+    "mtime": 1780509761.9620757,
+    "ast_hash": "b31bed3eaa548ab2b98ce3676f802063",
+    "semantic_hash": "b31bed3eaa548ab2b98ce3676f802063"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_00011.png": {
+    "mtime": 1780509761.9620922,
+    "ast_hash": "e641caf2e47fb7fd0c8c7a0ee043de40",
+    "semantic_hash": "e641caf2e47fb7fd0c8c7a0ee043de40"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_00012.png": {
+    "mtime": 1780509761.9801233,
+    "ast_hash": "868d32dfd0c907fdb7c89ca2b408222f",
+    "semantic_hash": "868d32dfd0c907fdb7c89ca2b408222f"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_00013.png": {
+    "mtime": 1780509761.9678488,
+    "ast_hash": "6e423daabda9205281b8a39b03a8f754",
+    "semantic_hash": "6e423daabda9205281b8a39b03a8f754"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_00014.png": {
+    "mtime": 1780509761.9739487,
+    "ast_hash": "5cfad20d1f4259c24f8c1cb937347575",
+    "semantic_hash": "5cfad20d1f4259c24f8c1cb937347575"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_00015.png": {
+    "mtime": 1780509761.965949,
+    "ast_hash": "b1f6388f576c5b84271a45bfff201c29",
+    "semantic_hash": "b1f6388f576c5b84271a45bfff201c29"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0002.png": {
+    "mtime": 1780505837.0419965,
+    "ast_hash": "3b7e399d5ed157e69fc321605a7e426d",
+    "semantic_hash": "3b7e399d5ed157e69fc321605a7e426d"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0003.png": {
+    "mtime": 1780505837.042346,
+    "ast_hash": "63ceb2da4b172ed4b1dd8b4d2f347bdd",
+    "semantic_hash": "63ceb2da4b172ed4b1dd8b4d2f347bdd"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0004.png": {
+    "mtime": 1780505837.042719,
+    "ast_hash": "4fd3e8e783588fde9b1d38ff7eafe342",
+    "semantic_hash": "4fd3e8e783588fde9b1d38ff7eafe342"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0005.png": {
+    "mtime": 1780505837.0430543,
+    "ast_hash": "6b7a89624ecad4d6fc80639383942a66",
+    "semantic_hash": "6b7a89624ecad4d6fc80639383942a66"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0006.png": {
+    "mtime": 1780578088.6114616,
+    "ast_hash": "9e1a25c17cba4ad4a68957f59c9ed8de",
+    "semantic_hash": "9e1a25c17cba4ad4a68957f59c9ed8de"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0007.png": {
+    "mtime": 1780578093.3293147,
+    "ast_hash": "e138eb95469b618dfc8387ec340212ff",
+    "semantic_hash": "e138eb95469b618dfc8387ec340212ff"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0008.png": {
+    "mtime": 1780578200.869817,
+    "ast_hash": "eee67218c42429bb0837e92437d7442e",
+    "semantic_hash": "eee67218c42429bb0837e92437d7442e"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/characters/player/Sprite_0009.png": {
+    "mtime": 1780578201.3011732,
+    "ast_hash": "fec9aa82e0bbf2c5cde647da4a9e419f",
+    "semantic_hash": "fec9aa82e0bbf2c5cde647da4a9e419f"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/endings/family-end.png": {
+    "mtime": 1780769550.6818564,
+    "ast_hash": "40f148521732e77cf6aa733b6e9f0151",
+    "semantic_hash": "40f148521732e77cf6aa733b6e9f0151"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/endings/friends-end.png": {
+    "mtime": 1780769550.684258,
+    "ast_hash": "b774fa6653592ab0ddd18d3814b98607",
+    "semantic_hash": "b774fa6653592ab0ddd18d3814b98607"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/endings/praying-end.png": {
+    "mtime": 1780769550.686743,
+    "ast_hash": "918e8bead657d7c1ca6a6f98cb2eef2b",
+    "semantic_hash": "918e8bead657d7c1ca6a6f98cb2eef2b"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/BG_Nighttime_Multiply.png": {
+    "mtime": 1780644238.5566165,
+    "ast_hash": "c3e9f10ee907823f077ee6bd9281f686",
+    "semantic_hash": "c3e9f10ee907823f077ee6bd9281f686"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/base.png": {
+    "mtime": 1780769550.6871421,
+    "ast_hash": "2d8fa84ec1784f30331a0b39388df27b",
+    "semantic_hash": "2d8fa84ec1784f30331a0b39388df27b"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/bed.png": {
+    "mtime": 1780644238.5569754,
+    "ast_hash": "04b26c4cde2df0bd9b050311d159c2ca",
+    "semantic_hash": "04b26c4cde2df0bd9b050311d159c2ca"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/blue-screen-effect.png": {
+    "mtime": 1780769550.6872213,
+    "ast_hash": "82740e35638835d67960da4cb6a4309e",
+    "semantic_hash": "82740e35638835d67960da4cb6a4309e"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/chair.png": {
+    "mtime": 1780644238.5571117,
+    "ast_hash": "b77645327a992be8a64ad9e7cc1efcaa",
+    "semantic_hash": "b77645327a992be8a64ad9e7cc1efcaa"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/clock.png": {
+    "mtime": 1780644238.5571616,
+    "ast_hash": "9e02f0fe56ace9e3dcb5284455cd39aa",
+    "semantic_hash": "9e02f0fe56ace9e3dcb5284455cd39aa"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/clock/BG_Clock_1.png": {
+    "mtime": 1780644238.5572338,
+    "ast_hash": "9e02f0fe56ace9e3dcb5284455cd39aa",
+    "semantic_hash": "9e02f0fe56ace9e3dcb5284455cd39aa"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/clock/BG_Clock_2.png": {
+    "mtime": 1780644238.5575206,
+    "ast_hash": "98658fc501a7434119876db1e8d52381",
+    "semantic_hash": "98658fc501a7434119876db1e8d52381"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/clock/BG_Clock_3.png": {
+    "mtime": 1780644238.5576959,
+    "ast_hash": "1e9dc6772fcd861b680504a38c7aa9da",
+    "semantic_hash": "1e9dc6772fcd861b680504a38c7aa9da"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/clock/BG_Clock_4.png": {
+    "mtime": 1780644238.5578985,
+    "ast_hash": "f117064381502d702042c5cc6d293aeb",
+    "semantic_hash": "f117064381502d702042c5cc6d293aeb"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/desk.png": {
+    "mtime": 1780644238.5580275,
+    "ast_hash": "2d51556a0da0af962dbd0e84fd49954c",
+    "semantic_hash": "2d51556a0da0af962dbd0e84fd49954c"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/door.png": {
+    "mtime": 1780644238.55817,
+    "ast_hash": "ef6b9ac474ad1f7c38bd4873af3ba3b6",
+    "semantic_hash": "ef6b9ac474ad1f7c38bd4873af3ba3b6"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/preview.png": {
+    "mtime": 1780644238.5584328,
+    "ast_hash": "23385867c407d018a6ddfa6cf196f200",
+    "semantic_hash": "23385867c407d018a6ddfa6cf196f200"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/environment/bedroom/wardrobe.png": {
+    "mtime": 1780644238.558488,
+    "ast_hash": "ed1e7dfaab3a859a34fe4afd82923a59",
+    "semantic_hash": "ed1e7dfaab3a859a34fe4afd82923a59"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/ui/kubah.png": {
+    "mtime": 1780644238.558677,
+    "ast_hash": "1664954b61eb9f6ee897bb4aa0886036",
+    "semantic_hash": "1664954b61eb9f6ee897bb4aa0886036"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/ui/mail.png": {
+    "mtime": 1780644238.5588815,
+    "ast_hash": "3655805e0fb8a6a431bf2803a43f0cab",
+    "semantic_hash": "3655805e0fb8a6a431bf2803a43f0cab"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/ui/player-dialogue.png": {
+    "mtime": 1780644238.5590649,
+    "ast_hash": "dd73098131ad607266021b50e96d8ff4",
+    "semantic_hash": "dd73098131ad607266021b50e96d8ff4"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/backsound-phase1.mp3": {
+    "mtime": 1780769550.6746073,
+    "ast_hash": "b30dac77a5db767ac30977f3df81c74f",
+    "semantic_hash": "b30dac77a5db767ac30977f3df81c74f"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/chicken.mp3": {
+    "mtime": 1780644238.540568,
+    "ast_hash": "396aba2c24cab6907666f3bbbf6dfb72",
+    "semantic_hash": "396aba2c24cab6907666f3bbbf6dfb72"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/cricket.mp3": {
+    "mtime": 1780644238.5415144,
+    "ast_hash": "7a6cc36080c4070c9237b3137bb1c14a",
+    "semantic_hash": "7a6cc36080c4070c9237b3137bb1c14a"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/door-bell.wav": {
+    "mtime": 1780644238.5439517,
+    "ast_hash": "5fbf269aa4712000501aaf4d443a89c6",
+    "semantic_hash": "5fbf269aa4712000501aaf4d443a89c6"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/door-knock.wav": {
+    "mtime": 1780644238.5448487,
+    "ast_hash": "27b5f5527f5217db031394f47d43668a",
+    "semantic_hash": "27b5f5527f5217db031394f47d43668a"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/door-rustle.wav": {
+    "mtime": 1780644238.5476913,
+    "ast_hash": "546e873e52eb73614cf31bfe7eefe1ef",
+    "semantic_hash": "546e873e52eb73614cf31bfe7eefe1ef"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/earn-money.mp3": {
+    "mtime": 1780644238.5484798,
+    "ast_hash": "13efb179d50bc426b4b252dd131aa27c",
+    "semantic_hash": "13efb179d50bc426b4b252dd131aa27c"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/final-memory-sound.mp3": {
+    "mtime": 1780769550.678246,
+    "ast_hash": "85e7a393c8e9a96faed216f81e4da809",
+    "semantic_hash": "85e7a393c8e9a96faed216f81e4da809"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/footstep.wav": {
+    "mtime": 1780644238.5498157,
+    "ast_hash": "18300c8e25a9cabe5bc8ad736d1f60ea",
+    "semantic_hash": "18300c8e25a9cabe5bc8ad736d1f60ea"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/pop-up-bubble-icon.mp3": {
+    "mtime": 1780644238.5517478,
+    "ast_hash": "bc49e95b977a748eb4986e6d0445defe",
+    "semantic_hash": "bc49e95b977a748eb4986e6d0445defe"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/sound-adzan.wav": {
+    "mtime": 1780644238.5557504,
+    "ast_hash": "96eb0f625681ecc3ec5045ae6efbfbcf",
+    "semantic_hash": "96eb0f625681ecc3ec5045ae6efbfbcf"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/audio/spacebar.mp3": {
+    "mtime": 1780644238.55614,
+    "ast_hash": "565176b34856b049074416daac66e738",
+    "semantic_hash": "565176b34856b049074416daac66e738"
+  },
+  "/Users/neuhendra/Developer/cuties/public/assets/video/epilogue-scene.mp4": {
+    "mtime": 1780644238.5686646,
+    "ast_hash": "d01d11662529c7617fea55838d0d5d2f",
+    "semantic_hash": "d01d11662529c7617fea55838d0d5d2f"
+  }
+}

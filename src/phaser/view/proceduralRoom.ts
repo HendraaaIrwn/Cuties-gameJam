@@ -12,20 +12,20 @@ const playerFrames: Record<PlayerFacing, string[]> = {
 };
 
 const playerFiles: Record<string, string> = {
-  "player-right-0": "/assets/characters/player/Sprite_00010.png",
-  "player-right-1": "/assets/characters/player/Sprite_00011.png",
-  "player-right-2": "/assets/characters/player/Sprite_00012.png",
-  "player-right-3": "/assets/characters/player/Sprite_00013.png",
-  "player-right-4": "/assets/characters/player/Sprite_00014.png",
-  "player-right-5": "/assets/characters/player/Sprite_00015.png",
-  "player-left-0": "/assets/characters/player/Sprite_0003.png",
-  "player-left-1": "/assets/characters/player/Sprite_0004.png",
-  "player-left-2": "/assets/characters/player/Sprite_0005.png",
+  "player-right-0": "assets/characters/player/Sprite_00010.png",
+  "player-right-1": "assets/characters/player/Sprite_00011.png",
+  "player-right-2": "assets/characters/player/Sprite_00012.png",
+  "player-right-3": "assets/characters/player/Sprite_00013.png",
+  "player-right-4": "assets/characters/player/Sprite_00014.png",
+  "player-right-5": "assets/characters/player/Sprite_00015.png",
+  "player-left-0": "assets/characters/player/Sprite_0003.png",
+  "player-left-1": "assets/characters/player/Sprite_0004.png",
+  "player-left-2": "assets/characters/player/Sprite_0005.png",
   "player-mirror-idle": assetManifest.characters["character.player.idle.mirror"],
-  "player-down-0": "/assets/characters/player/Sprite_0006.png",
-  "player-down-1": "/assets/characters/player/Sprite_0007.png",
-  "player-up-0": "/assets/characters/player/Sprite_0008.png",
-  "player-up-1": "/assets/characters/player/Sprite_0009.png",
+  "player-down-0": "assets/characters/player/Sprite_0006.png",
+  "player-down-1": "assets/characters/player/Sprite_0007.png",
+  "player-up-0": "assets/characters/player/Sprite_0008.png",
+  "player-up-1": "assets/characters/player/Sprite_0009.png",
 };
 
 const bedroomLayerKeys = [
