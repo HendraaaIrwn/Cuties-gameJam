@@ -31,3 +31,6 @@ coverage/
 .claude/
 .lexa/
 .codex/
+
+#others
+graphify-out
